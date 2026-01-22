@@ -1,0 +1,7 @@
+{
+  "name": "Si-Kertas (Sistem Kerja Tuntas)",
+  "description": "Internal government application for BPMP employees to manage assignments, monitor discipline, and ensure accountability with a clean, pastel-themed interface.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
