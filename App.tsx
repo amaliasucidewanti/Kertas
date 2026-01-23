@@ -1,29 +1,40 @@
 
 import React, { useState, useEffect } from 'react';
+// @ts-ignore
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthState, Pegawai, Role } from './types';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import EmployeeList from './pages/EmployeeList';
 import AssignmentCalendar from './pages/Calendar';
-import IdleEmployees from './pages/IdleEmployees';
 import SuratTugasForm from './pages/SuratTugasForm';
+import AssignmentWizard from './pages/AssignmentWizard';
+import LaporanTugas from './pages/LaporanTugas';
 import DisciplineView from './pages/Discipline';
 import Reports from './pages/Reports';
 import ChangePassword from './pages/ChangePassword';
+import ManageAccounts from './pages/ManageAccounts';
 import Layout from './components/Layout';
+import { dataService } from './services/dataService';
 
 const App: React.FC = () => {
   const [auth, setAuth] = useState<AuthState>({
     user: null,
     isLoggedIn: false
   });
+  const [isDataReady, setIsDataReady] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem('si-kertas-auth');
-    if (stored) {
-      setAuth(JSON.parse(stored));
-    }
+    const initApp = async () => {
+      await dataService.syncAll();
+      setIsDataReady(true);
+
+      const stored = localStorage.getItem('si-kertas-auth');
+      if (stored) {
+        setAuth(JSON.parse(stored));
+      }
+    };
+    initApp();
   }, []);
 
   const handleLogin = (user: Pegawai) => {
@@ -46,43 +57,52 @@ const App: React.FC = () => {
     }
   };
 
+  if (!isDataReady) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8 space-y-6">
+        <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+        <div className="text-center">
+          <p className="text-sm font-black text-slate-900 uppercase tracking-widest">Sinkronisasi SI-KERTAS</p>
+          <p className="text-xs text-slate-400 font-bold mt-2 italic">Menyinkronkan data dengan Spreadsheet...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!auth.isLoggedIn) {
     return <Login onLogin={handleLogin} />;
   }
 
-  // Mandatory redirect for first login
-  if (auth.user?.passwordChangeRequired) {
-    return (
-      <HashRouter>
+  return (
+    <HashRouter>
+      {auth.user?.passwordChangeRequired ? (
         <Routes>
           <Route path="/change-password" element={<ChangePassword onPasswordChanged={handlePasswordChanged} forced={true} />} />
           <Route path="*" element={<Navigate to="/change-password" />} />
         </Routes>
-      </HashRouter>
-    );
-  }
+      ) : (
+        <Layout user={auth.user!} onLogout={handleLogout}>
+          <Routes>
+            <Route path="/" element={<Dashboard user={auth.user!} />} />
+            <Route path="/pegawai" element={<EmployeeList user={auth.user!} />} />
+            <Route path="/kalender" element={<AssignmentCalendar />} />
+            <Route path="/discipline" element={<DisciplineView user={auth.user!} />} />
+            <Route path="/change-password" element={<ChangePassword onPasswordChanged={handlePasswordChanged} forced={false} />} />
+            <Route path="/isi-laporan" element={<LaporanTugas user={auth.user!} />} />
+            
+            {(auth.user?.role === Role.ADMIN_TIM || auth.user?.role === Role.SUPER_ADMIN) && (
+              <>
+                <Route path="/surat-tugas/baru" element={<AssignmentWizard />} />
+                <Route path="/surat-tugas/edit" element={<SuratTugasForm />} />
+                <Route path="/laporan" element={<Reports />} />
+                <Route path="/accounts" element={<ManageAccounts user={auth.user!} />} />
+              </>
+            )}
 
-  return (
-    <HashRouter>
-      <Layout user={auth.user!} onLogout={handleLogout}>
-        <Routes>
-          <Route path="/" element={<Dashboard user={auth.user!} />} />
-          <Route path="/pegawai" element={<EmployeeList user={auth.user!} />} />
-          <Route path="/kalender" element={<AssignmentCalendar />} />
-          <Route path="/discipline" element={<DisciplineView user={auth.user!} />} />
-          <Route path="/change-password" element={<ChangePassword onPasswordChanged={handlePasswordChanged} forced={false} />} />
-          
-          {(auth.user?.role === Role.ADMIN_TIM || auth.user?.role === Role.SUPER_ADMIN) && (
-            <>
-              <Route path="/idle" element={<IdleEmployees />} />
-              <Route path="/surat-tugas/baru" element={<SuratTugasForm />} />
-              <Route path="/laporan" element={<Reports />} />
-            </>
-          )}
-
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </Layout>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Layout>
+      )}
     </HashRouter>
   );
 };

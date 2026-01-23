@@ -1,183 +1,340 @@
 
 import React, { useState, useMemo } from 'react';
-import { FileText, Download, Printer, Filter, Calendar as CalendarIcon } from 'lucide-react';
+import { 
+  FileText, 
+  Printer, 
+  Search, 
+  ChevronDown, 
+  ChevronUp, 
+  MapPin, 
+  User, 
+  Clock, 
+  AlertTriangle, 
+  CheckCircle,
+  Eye,
+  FileSearch,
+  Filter,
+  Download,
+  Landmark,
+  X
+} from 'lucide-react';
 import { dataService } from '../services/dataService';
+import { Role } from '../types';
 
 const Reports: React.FC = () => {
-  const [reportType, setReportType] = useState('Laporan Bulanan Pegawai Bertugas');
-  const [filterMonth, setFilterMonth] = useState('05');
+  // Reset filter bulan ke bulan berjalan (Bukan lagi Mei '05')
+  const currentMonthStr = (new Date().getMonth() + 1).toString().padStart(2, '0');
+  const [filterMonth, setFilterMonth] = useState(currentMonthStr);
   const [filterUnit, setFilterUnit] = useState('Seluruh Unit');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [problemOnly, setProblemOnly] = useState(false);
   
-  const allTasks = dataService.getPenugasan();
+  const brandingLogo = "https://lh3.googleusercontent.com/d/17vRGmP8EH8YSyeQn4GBxoszYRsYVLE3k";
+  const allTasks = dataService.getPenugasanWithStatus();
   const allEmployees = dataService.getPegawai();
 
   const filteredData = useMemo(() => {
     return allTasks.filter(task => {
-      const taskDate = task.tanggalMulai; // Format: YYYY-MM-DD
-      const monthMatches = taskDate.includes(`-05-`); // Hardcoded for demo, normally dynamic
-      
-      const emp = allEmployees.find(e => e.nama === task.namaPegawai);
+      const monthMatches = filterMonth ? task.tanggalMulai.includes(`-${filterMonth}-`) : true;
+      const emp = allEmployees.find(e => e.nip === task.nip);
       const unitMatches = filterUnit === 'Seluruh Unit' || emp?.unitKerja === filterUnit;
+      const searchMatches = 
+        task.namaPegawai.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        task.nomorSurat.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        task.namaKegiatan.toLowerCase().includes(searchTerm.toLowerCase());
       
-      return unitMatches; // Simplified filtering for preview
-    });
-  }, [allTasks, filterUnit, allEmployees]);
+      const isProblem = task.calculatedStatus === 'Terlambat' || task.calculatedStatus === 'Akan Selesai';
+      const statusMatches = problemOnly ? isProblem : true;
 
-  const handlePrint = () => {
-    window.print();
-  };
+      return monthMatches && unitMatches && searchMatches && statusMatches;
+    });
+  }, [allTasks, filterUnit, filterMonth, searchTerm, allEmployees, problemOnly]);
+
+  const summary = useMemo(() => {
+    return {
+      total: filteredData.length,
+      aktif: filteredData.filter(d => d.calculatedStatus === 'Bertugas').length,
+      selesai: filteredData.filter(d => d.calculatedStatus === 'Selesai').length,
+      belumLaporan: filteredData.filter(d => d.laporanStatus === 'Belum Upload').length,
+      terlambat: filteredData.filter(d => d.calculatedStatus === 'Terlambat').length,
+    };
+  }, [filteredData]);
+
+  const handlePrint = () => window.print();
 
   return (
-    <div className="space-y-6 pb-20">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
+    <div className="space-y-8 pb-32 max-w-7xl mx-auto animate-fade-in">
+      {/* 1. HEADER HALAMAN */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 no-print">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Pusat Laporan & Rekapitulasi</h1>
-          <p className="text-slate-500">Hasil cetak disesuaikan dengan standar pelaporan instansi pemerintah.</p>
+          <h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase italic leading-none">REKAP SURAT TUGAS PEGAWAI</h1>
+          <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-2 italic opacity-70">Monitoring penugasan dan pelaporan pegawai BPMP secara real-time</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-4 w-full md:w-auto">
+           <div className="flex-1 md:w-72 relative">
+              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+              <input 
+                type="text" 
+                placeholder="Cari NIP, Nama, atau Kegiatan..." 
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-6 py-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold shadow-sm outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+              />
+           </div>
            <button 
             onClick={handlePrint}
-            className="bg-white border p-3 rounded-xl text-slate-600 hover:text-indigo-600 shadow-sm transition-all"
+            className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-indigo-600 shadow-sm transition-all"
            >
              <Printer size={20} />
            </button>
-           <button className="bg-indigo-600 text-white px-5 py-3 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">
-             <Download size={18} /> Ekspor PDF
-           </button>
         </div>
       </div>
 
-      {/* Filter Laporan */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm no-print">
-        <div className="md:col-span-1">
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Pilih Laporan</label>
-          <select 
-            value={reportType} 
-            onChange={e => setReportType(e.target.value)}
-            className="w-full border border-slate-200 p-3 rounded-xl text-sm bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
-          >
-            <option>Laporan Bulanan Pegawai Bertugas</option>
-            <option>Rekap Surat Tugas Tahunan</option>
-            <option>Rekap Kedisiplinan Unit</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Bulan Pelaporan</label>
-          <select 
-            className="w-full border border-slate-200 p-3 rounded-xl text-sm bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500"
-            value={filterMonth}
-            onChange={(e) => setFilterMonth(e.target.value)}
-          >
-            <option value="04">April 2024</option>
-            <option value="05">Mei 2024</option>
-            <option value="06">Juni 2024</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Unit Kerja</label>
-          <select 
-            className="w-full border border-slate-200 p-3 rounded-xl text-sm bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500"
-            value={filterUnit}
-            onChange={(e) => setFilterUnit(e.target.value)}
-          >
+      {/* FILTER BAR */}
+      <div className="bg-white p-6 rounded-[2rem] border border-slate-50 shadow-sm flex flex-wrap gap-4 no-print items-center">
+         <div className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-xl">
+            <Filter size={14} className="text-slate-400" />
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Filter:</span>
+         </div>
+         <select 
+            value={filterMonth} 
+            onChange={e => setFilterMonth(e.target.value)}
+            className="px-4 py-3 bg-slate-50 border border-transparent rounded-xl text-xs font-black uppercase tracking-widest outline-none focus:border-indigo-500 transition-all"
+         >
+            <option value="01">Januari</option>
+            <option value="02">Februari</option>
+            <option value="03">Maret</option>
+            <option value="04">April</option>
+            <option value="05">Mei</option>
+            <option value="06">Juni</option>
+            <option value="07">Juli</option>
+            <option value="08">Agustus</option>
+            <option value="09">September</option>
+            <option value="10">Oktober</option>
+            <option value="11">November</option>
+            <option value="12">Desember</option>
+         </select>
+
+         <select 
+            value={filterUnit} 
+            onChange={e => setFilterUnit(e.target.value)}
+            className="px-4 py-3 bg-slate-50 border border-transparent rounded-xl text-xs font-black uppercase tracking-widest outline-none focus:border-indigo-500 transition-all"
+         >
             <option>Seluruh Unit</option>
-            <option>Tim Kerja 1</option>
-            <option>Tim Kerja 2</option>
-            <option>Tim Kerja 3</option>
-          </select>
-        </div>
-        <div className="flex items-end">
-          <button className="w-full bg-slate-800 text-white p-3 rounded-xl text-sm font-bold shadow-md hover:bg-slate-900 transition-all flex items-center justify-center gap-2">
-            <Filter size={16} /> Update Pratinjau
-          </button>
-        </div>
+            {Array.from(new Set(allEmployees.map(e => e.unitKerja))).map(u => <option key={u}>{u}</option>)}
+         </select>
+
+         <div className="h-8 w-[1px] bg-slate-100 mx-2 hidden md:block"></div>
+
+         <div className="flex bg-slate-100 p-1.5 rounded-2xl">
+            <button 
+              onClick={() => setProblemOnly(false)}
+              className={`px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${!problemOnly ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}
+            >
+              Semua ST
+            </button>
+            <button 
+              onClick={() => setProblemOnly(true)}
+              className={`px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${problemOnly ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-400'}`}
+            >
+              ST Bermasalah
+            </button>
+         </div>
+
+         <div className="ml-auto">
+            <button className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] shadow-lg hover:bg-black transition-all">
+               <Download size={14} /> Ekspor PDF
+            </button>
+         </div>
       </div>
 
-      {/* Pratinjau Kertas A4 */}
-      <div className="bg-slate-500/10 p-4 md:p-12 rounded-3xl overflow-x-auto print-container">
-        <div className="bg-white max-w-4xl mx-auto p-12 shadow-2xl rounded-sm text-slate-900 font-sans border border-slate-300 print:shadow-none print:border-none" style={{ minHeight: '297mm' }}>
-          {/* Kop Instansi */}
-          <div className="flex items-center border-b-4 border-double border-slate-800 pb-4 mb-8 text-center">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/b/b3/Logo_Kemdikbud.png" alt="Logo" className="w-20 h-20 object-contain mr-6 grayscale" />
+      {/* 2. SUMMARY STRIP */}
+      <div className="bg-white p-2 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-wrap items-center no-print divide-x divide-slate-100 overflow-hidden">
+         {[
+           { label: 'Total ST', val: summary.total, color: 'slate' },
+           { label: 'ST Aktif', val: summary.aktif, color: 'emerald' },
+           { label: 'ST Selesai', val: summary.selesai, color: 'blue' },
+           { label: 'Belum Laporan', val: summary.belumLaporan, color: 'amber' },
+           { label: 'Terlambat', val: summary.terlambat, color: 'rose' },
+         ].map((s, i) => (
+           <div key={i} className="flex-1 py-6 px-10 text-center group hover:bg-slate-50 transition-colors">
+              <p className={`text-2xl font-black text-${s.color}-600 tracking-tighter leading-none`}>{s.val}</p>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2 italic">{s.label}</p>
+           </div>
+         ))}
+      </div>
+
+      {/* 3. DAFTAR REKAP SURAT TUGAS */}
+      <div className="space-y-4 no-print">
+         {filteredData.length > 0 ? filteredData.map((task) => {
+            const isExpanded = expandedId === task.id;
+            const emp = allEmployees.find(e => e.nip === task.nip);
+            
+            return (
+               <div 
+                key={task.id} 
+                className={`bg-white rounded-[3rem] border transition-all duration-300 overflow-hidden cursor-pointer group ${isExpanded ? 'border-indigo-200 shadow-2xl scale-[1.01]' : 'border-slate-100 shadow-sm hover:border-indigo-100'}`}
+                onClick={() => setExpandedId(isExpanded ? null : task.id)}
+               >
+                  <div className="p-8 flex flex-col lg:flex-row items-center justify-between gap-10">
+                     <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-2">
+                           <span className={`w-2 h-2 rounded-full bg-${task.calculatedColor}-500`}></span>
+                           <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{task.nomorSurat}</p>
+                        </div>
+                        <h3 className="text-lg font-black text-slate-800 uppercase leading-tight line-clamp-2 group-hover:text-indigo-600 transition-colors">
+                           {task.namaKegiatan}
+                        </h3>
+                     </div>
+
+                     <div className="flex-[1.2] flex items-center gap-12 text-left">
+                        <div className="flex items-center gap-4">
+                           <div className="w-12 h-12 bg-slate-900 rounded-[1.25rem] flex items-center justify-center text-white shadow-xl">
+                              <User size={20} />
+                           </div>
+                           <div>
+                              <p className="font-black text-slate-900 text-sm leading-none uppercase tracking-tight">{task.namaPegawai}</p>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1.5">{emp?.unitKerja}</p>
+                           </div>
+                        </div>
+                        <div className="hidden xl:block">
+                           <div className="flex items-center gap-2 text-[10px] font-black text-slate-800 uppercase tracking-tighter">
+                              <Clock size={12} className="text-indigo-500" /> {task.tanggalMulai} s.d {task.tanggalSelesai}
+                           </div>
+                           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic mt-1">Periode Tugas</p>
+                        </div>
+                     </div>
+
+                     <div className="flex-1 flex flex-row lg:flex-col items-center lg:items-end justify-between lg:justify-center gap-8">
+                        <div className="text-right">
+                           <p className="text-sm font-black text-slate-900 tracking-tighter leading-none">Rp {task.biaya.toLocaleString('id-ID')}</p>
+                           <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded mt-1 inline-block ${task.jenisPenugasan === 'Luring' ? 'bg-rose-50 text-rose-500' : 'bg-blue-50 text-blue-500'}`}>
+                              {task.jenisPenugasan}
+                           </span>
+                        </div>
+                        <div className="flex flex-col items-end">
+                           <div className={`flex items-center gap-2 px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest bg-${task.calculatedColor}-50 text-${task.calculatedColor}-600 border border-${task.calculatedColor}-100 shadow-sm`}>
+                              {task.calculatedStatus === 'Terlambat' && <AlertTriangle size={12} />}
+                              {task.calculatedStatus === 'Selesai' && <CheckCircle size={12} />}
+                              {task.calculatedStatus}
+                           </div>
+                           <p className={`text-[8px] font-black mt-1.5 uppercase italic text-${task.calculatedColor}-400 flex items-center gap-1`}>
+                              {task.calculatedContext}
+                           </p>
+                        </div>
+                     </div>
+                  </div>
+
+                  {isExpanded && (
+                     <div className="bg-slate-50/50 p-12 border-t border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-16 animate-slide-down">
+                        <div className="space-y-8">
+                           <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-3">Informasi Pelaksanaan</h4>
+                           <div className="space-y-6">
+                              <div className="flex items-start gap-4">
+                                 <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg"><MapPin size={16} /></div>
+                                 <div>
+                                    <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Lokasi Kegiatan</p>
+                                    <p className="text-sm font-bold text-slate-700">{task.lokasi || 'Kab/Kota di Maluku Utara'}</p>
+                                 </div>
+                              </div>
+                              <div className="flex items-start gap-4">
+                                 <div className="p-2 bg-amber-100 text-amber-600 rounded-lg"><User size={16} /></div>
+                                 <div>
+                                    <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Penandatangan ST</p>
+                                    <p className="text-sm font-bold text-slate-700">{task.penandatangan || 'Kepala BPMP Maluku Utara'}</p>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+
+                        <div className="space-y-8">
+                           <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-3">Status Administrasi</h4>
+                           <div className="space-y-6">
+                              <div>
+                                 <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Sumber Pembiayaan</p>
+                                 <div className="flex items-center gap-2">
+                                    <Landmark size={14} className="text-slate-400" />
+                                    <p className="text-sm font-bold text-slate-700 uppercase">{task.sumberBiaya} TA 2026</p>
+                                 </div>
+                              </div>
+                              <div>
+                                 <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">Dokumen Laporan</p>
+                                 <p className={`text-xs font-bold ${task.laporanStatus === 'Sudah Upload' ? 'text-emerald-600' : 'text-rose-600'} flex items-center gap-2`}>
+                                    {task.laporanStatus === 'Sudah Upload' ? <CheckCircle size={14}/> : <X size={14}/>}
+                                    {task.laporanStatus === 'Sudah Upload' ? 'Dokumen Terverifikasi Digital' : 'Belum Ada Unggahan Laporan'}
+                                 </p>
+                              </div>
+                           </div>
+                        </div>
+
+                        <div className="flex flex-col justify-end gap-3">
+                           <button className="flex items-center justify-center gap-3 w-full bg-slate-900 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200">
+                              <Eye size={18} /> Lihat Surat Tugas
+                           </button>
+                           <button className={`flex items-center justify-center gap-3 w-full px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${task.laporanStatus === 'Sudah Upload' ? 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}>
+                              <FileSearch size={18} /> Lihat Laporan Hasil
+                           </button>
+                        </div>
+                     </div>
+                  )}
+               </div>
+            );
+         }) : (
+            <div className="py-40 flex flex-col items-center justify-center bg-white rounded-[4rem] border-2 border-dashed border-slate-100">
+               <div className="p-12 bg-slate-50 rounded-[3rem] mb-8">
+                  <FileSearch size={80} className="text-slate-200" />
+               </div>
+               <h3 className="text-2xl font-black text-slate-300 uppercase tracking-tighter">Tidak ada data penugasan</h3>
+               <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-3 italic text-center">Silakan ubah parameter filter atau pencarian Anda</p>
+            </div>
+         )}
+      </div>
+
+      {/* 4. PRATINJAU CETAK */}
+      <div className="hidden print:block bg-white p-[20mm] font-serif text-slate-900">
+          <div className="flex items-center border-b-[5px] border-double border-slate-900 pb-4 mb-10 text-center">
+            <img src={brandingLogo} alt="Logo" className="w-24 h-24 object-contain mr-8 grayscale brightness-0" />
             <div className="flex-1">
-              <h2 className="text-sm font-bold uppercase tracking-tight">Kementerian Pendidikan, Kebudayaan, Riset, Dan Teknologi</h2>
-              <h3 className="text-lg font-extrabold uppercase leading-tight">Balai Penjaminan Mutu Pendidikan (BPMP)</h3>
-              <p className="text-[10px] italic">Sistem Kerja Tuntas (Si-Kertas) - Laporan Akuntabilitas Pegawai</p>
+              <h2 className="text-[12pt] font-bold uppercase tracking-tight leading-tight mb-1">Kementerian Pendidikan, Kebudayaan, Riset, Dan Teknologi</h2>
+              <h3 className="text-[16pt] font-black uppercase leading-tight mb-2">Balai Penjaminan Mutu Pendidikan (BPMP)</h3>
+              <p className="text-[10pt] font-sans italic opacity-90">Rekapitulasi Surat Tugas Pegawai • Tahun Anggaran 2026</p>
             </div>
           </div>
-
-          <div className="text-center mb-10 space-y-2">
-            <h4 className="text-md font-bold uppercase underline decoration-2 underline-offset-4">{reportType.toUpperCase()}</h4>
-            <p className="text-xs font-semibold text-slate-600 italic">Periode Pelaporan: Mei 2024</p>
-            <p className="text-xs text-slate-500">Unit Kerja: {filterUnit}</p>
-          </div>
-
-          <table className="w-full border-collapse border border-slate-800 text-[11px]">
+          <h4 className="text-center text-[14pt] font-bold uppercase underline decoration-2 underline-offset-8 mb-10">LAPORAN REKAPITULASI PENUGASAN</h4>
+          <table className="w-full border-collapse border-[1.5px] border-slate-900 text-[9pt] font-sans">
             <thead>
-              <tr className="bg-slate-100 uppercase">
-                <th className="border border-slate-800 p-2 w-8">No</th>
-                <th className="border border-slate-800 p-2 text-left">Nama Pegawai / NIP</th>
-                <th className="border border-slate-800 p-2 text-left">Deskripsi Penugasan</th>
-                <th className="border border-slate-800 p-2 w-24">Jenis</th>
-                <th className="border border-slate-800 p-2 text-right w-24">Biaya (Rp)</th>
-                <th className="border border-slate-800 p-2 w-20">Status</th>
+              <tr className="bg-slate-100 uppercase font-bold">
+                <th className="border border-slate-900 p-2">No</th>
+                <th className="border border-slate-900 p-2">Nomor ST</th>
+                <th className="border border-slate-900 p-2">Nama Pegawai</th>
+                <th className="border border-slate-900 p-2">Kegiatan</th>
+                <th className="border border-slate-900 p-2">Periode</th>
+                <th className="border border-slate-900 p-2 text-center">Status</th>
               </tr>
             </thead>
             <tbody>
-              {filteredData.length > 0 ? filteredData.map((task, idx) => (
-                <tr key={task.id} className="hover:bg-slate-50">
-                  <td className="border border-slate-800 p-2 text-center">{idx + 1}</td>
-                  <td className="border border-slate-800 p-2">
-                    <span className="font-bold">{task.namaPegawai}</span><br/>
-                    <span className="text-[9px] text-slate-500 italic">NIP: 19850101XXXXXX</span>
-                  </td>
-                  <td className="border border-slate-800 p-2 text-justify italic">{task.namaKegiatan}</td>
-                  <td className="border border-slate-800 p-2 text-center text-[10px]">{task.jenisPenugasan}</td>
-                  <td className="border border-slate-800 p-2 text-right font-mono tracking-tighter">
-                    {task.biaya.toLocaleString('id-ID')}
-                  </td>
-                  <td className="border border-slate-800 p-2 text-center text-[10px] font-bold text-emerald-700 uppercase">
-                    {task.statusTugas}
-                  </td>
+              {filteredData.map((t, i) => (
+                <tr key={t.id}>
+                  <td className="border border-slate-900 p-2 text-center">{i + 1}</td>
+                  <td className="border border-slate-900 p-2 font-mono">{t.nomorSurat}</td>
+                  <td className="border border-slate-900 p-2 font-bold uppercase">{t.namaPegawai}</td>
+                  <td className="border border-slate-900 p-2 text-[8pt]">{t.namaKegiatan}</td>
+                  <td className="border border-slate-900 p-2 whitespace-nowrap">{t.tanggalMulai} - {t.tanggalSelesai}</td>
+                  <td className="border border-slate-900 p-2 text-center uppercase font-bold">{t.calculatedStatus}</td>
                 </tr>
-              )) : (
-                <tr>
-                  <td colSpan={6} className="border border-slate-800 p-8 text-center text-slate-400 italic">Tidak ada data penugasan yang sesuai dengan kriteria filter.</td>
-                </tr>
-              )}
-              {filteredData.length > 0 && (
-                <tr className="bg-slate-50 font-bold">
-                  <td colSpan={4} className="border border-slate-800 p-3 text-right text-xs">REKAPITULASI TOTAL BIAYA PENUGASAN</td>
-                  <td className="border border-slate-800 p-3 text-right font-mono text-xs">
-                    Rp {filteredData.reduce((acc, curr) => acc + curr.biaya, 0).toLocaleString('id-ID')}
-                  </td>
-                  <td className="border border-slate-800 p-3"></td>
-                </tr>
-              )}
+              ))}
             </tbody>
           </table>
-
-          <div className="mt-16 flex justify-between items-end text-[10px] px-2">
-             <div className="space-y-1">
-                <p className="font-bold italic">Dokumen ini dihasilkan secara otomatis oleh Si-Kertas BPMP</p>
-                <p>Waktu Cetak: {new Date().toLocaleString('id-ID')}</p>
-                <div className="mt-4 w-20 h-20 border-2 border-slate-200 flex items-center justify-center text-[8px] text-slate-300 uppercase font-bold transform -rotate-12">
-                   QR Code Arsip
-                </div>
-             </div>
-             <div className="text-center w-64 space-y-20">
-                <p className="font-semibold underline underline-offset-2 uppercase">Mengetahui, Pimpinan Unit</p>
-                <div className="space-y-0.5">
-                  <p className="font-bold underline decoration-1 uppercase">....................................................</p>
-                  <p>NIP. ........................................</p>
+          <div className="mt-24 flex justify-end">
+             <div className="text-center w-80 space-y-24">
+                <p>Mengesahkan,<br/><span className="font-bold">Kasubbag Umum BPMP Malut</span></p>
+                <div className="space-y-1">
+                   <p className="font-black underline uppercase">Samsul Arifin, M.Pd.</p>
+                   <p className="text-[9pt]">NIP. 19750101XXXXXXXXXX</p>
                 </div>
              </div>
           </div>
-          
-          <div className="mt-8 text-center text-[9px] text-slate-400 font-sans no-print border-t pt-4">
-             --- Batas Akhir Halaman Pratinjau Laporan ---
-          </div>
-        </div>
       </div>
     </div>
   );

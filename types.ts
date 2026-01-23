@@ -14,29 +14,38 @@ export interface Pegawai {
   role: Role;
   username: string;
   passwordChangeRequired: boolean;
+  lastPasswordResetBy?: string;
+  lastPasswordResetAt?: string;
 }
 
 export interface Penugasan {
   id: string;
+  nomorSurat: string;
   namaPegawai: string;
+  nip: string;
+  jabatan?: string;
   namaKegiatan: string;
   tanggalMulai: string;
   tanggalSelesai: string;
-  jenisPenugasan: string;
+  jenisPenugasan: 'Luring' | 'Daring';
+  sumberBiaya: 'BPMP' | 'Penyelenggara' | 'Lainnya';
   biaya: number;
   statusTugas: 'Draft' | 'Aktif' | 'Selesai' | 'Perlu Perbaikan';
-  nomorSurat?: string;
-  dasarPenugasan?: string;
+  laporanStatus: 'Sudah Upload' | 'Belum Upload';
   lokasi?: string;
+  uraianTugas?: string;
+  hasilKerja?: string;
+  dokumentasiFotos?: string[]; // Minimal 3 photos requirement
   penandatangan?: string;
+  createdAt: string;
 }
 
 export interface Kedisiplinan {
   nip: string;
-  kehadiran: number; // 25%
-  apel: number;      // 15%
-  logHarian: number; // 20%
-  pelaporan: number; // 40%
+  kehadiran: number;   // Bobot 25%
+  apel: number;        // Bobot 15%
+  logHarian: number;   // Bobot 20%
+  pelaporan: number;   // Bobot 40%
   nilaiAkhir: number;
 }
 
