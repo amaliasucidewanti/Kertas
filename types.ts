@@ -33,8 +33,15 @@ export interface Penugasan {
   statusTugas: 'Draft' | 'Aktif' | 'Selesai' | 'Perlu Perbaikan';
   laporanStatus: 'Sudah Upload' | 'Belum Upload';
   lokasi?: string;
-  uraianTugas?: string;
-  hasilKerja?: string;
+  // Format Laporan Baru
+  latarBelakang?: string;
+  maksudTujuan?: string;
+  ruangLingkup?: string;
+  dasarLaporan?: string;
+  uraianTugas?: string; // Bagian B: Kegiatan
+  hasilKerja?: string;   // Bagian C: Hasil
+  simpulanSaran?: string; // Bagian D: Simpulan
+  penutupLaporan?: string; // Bagian E: Penutup
   dokumentasiFotos?: string[]; // Minimal 3 photos requirement
   penandatangan?: string;
   createdAt: string;
@@ -42,10 +49,10 @@ export interface Penugasan {
 
 export interface Kedisiplinan {
   nip: string;
-  kehadiran: number;   // Bobot 25%
-  apel: number;        // Bobot 15%
-  logHarian: number;   // Bobot 20%
-  pelaporan: number;   // Bobot 40%
+  kehadiran: number;
+  apel: number;
+  logHarian: number;
+  pelaporan: number;
   nilaiAkhir: number;
 }
 

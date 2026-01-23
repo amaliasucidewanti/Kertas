@@ -2,6 +2,7 @@
 import { Role, Pegawai, Penugasan, Kedisiplinan } from '../types';
 
 const SPREADSHEET_ID = '1iB7Tdda08wD1u5IwiKUEjkfI2JFzw4wjTI_bGRhivVc';
+const LOCAL_STORAGE_KEY = 'si-kertas-local-db-v1';
 
 const SYSTEM_USERS: Pegawai[] = [
   { id: 'sys-admin', nama: 'Administrator Utama', nip: '000000', jabatan: 'Super Admin', unitKerja: 'Pusat Data', role: Role.SUPER_ADMIN, username: 'Admin', passwordChangeRequired: false },
@@ -34,8 +35,8 @@ const parseCSV = (csvText: string) => {
     const line = lines[i].trim();
     if (!line) continue;
     const values = [];
-    let current = '';
     let inQuotes = false;
+    let current = '';
     for (let j = 0; j < line.length; j++) {
       const char = line[j];
       if (char === '"') inQuotes = !inQuotes;
@@ -50,82 +51,126 @@ const parseCSV = (csvText: string) => {
   return rows;
 };
 
+const persistData = () => {
+  const dataToSave = {
+    penugasan: MOCK_PENUGASAN,
+    pegawai: MOCK_PEGAWAI,
+    lastUpdate: new Date().toISOString()
+  };
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
+};
+
+const loadLocalData = () => {
+  const local = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (local) {
+    const parsed = JSON.parse(local);
+    MOCK_PENUGASAN = parsed.penugasan || [];
+    if (parsed.pegawai && parsed.pegawai.length > 0) {
+        MOCK_PEGAWAI = parsed.pegawai;
+    }
+  }
+};
+
 export const dataService = {
+  standardizeNip: (nip: string) => {
+    if (!nip) return '';
+    return nip.toString().replace(/\D/g, '').trim();
+  },
+
+  getTodayWIT: () => {
+    const now = new Date();
+    const options: Intl.DateTimeFormatOptions = { 
+      timeZone: 'Asia/Jayapura', 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit' 
+    };
+    const parts = new Intl.DateTimeFormat('en-CA', options).formatToParts(now);
+    const year = parts.find(p => p.type === 'year')?.value;
+    const month = parts.find(p => p.type === 'month')?.value;
+    const day = parts.find(p => p.type === 'day')?.value;
+    return `${year}-${month}-${day}`;
+  },
+
   syncAll: async () => {
+    loadLocalData();
     try {
-      const [pegRes, stRes, disRes] = await Promise.all([
+      const [pegRes, disRes] = await Promise.all([
         fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=DATA_PEGAWAI`),
-        fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=SURAT_TUGAS`),
         fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=DISIPLIN_PEGAWAI`)
       ]);
 
-      const [pegCsv, stCsv, disCsv] = await Promise.all([pegRes.text(), stRes.text(), disRes.text()]);
+      const [pegCsv, disCsv] = await Promise.all([pegRes.text(), disRes.text()]);
       
       const pegRows = parseCSV(pegCsv);
-      MOCK_PEGAWAI = pegRows.map((row, idx) => ({
-        id: `p-${idx}`,
-        nama: row[1] || 'Tanpa Nama',
-        nip: (row[0] || '').replace(/\D/g, ''),
-        jabatan: row[2] || '-',
-        unitKerja: row[3] || '-',
-        role: (row[4] as Role) || Role.PEGAWAI,
-        username: (row[0] || '').replace(/\D/g, ''),
-        passwordChangeRequired: false
+      const spreadsheetPegawai = pegRows.map((row, idx) => {
+        const nip = dataService.standardizeNip(row[0] || '');
+        return {
+          id: `p-${idx}`,
+          nama: row[1] || 'Tanpa Nama',
+          nip: nip,
+          jabatan: row[2] || '-',
+          unitKerja: row[3] || '-',
+          role: (row[4] as Role) || Role.PEGAWAI,
+          username: nip,
+          passwordChangeRequired: false
+        };
+      });
+
+      const existingNips = new Set(MOCK_PEGAWAI.map(p => p.nip));
+      spreadsheetPegawai.forEach(sp => {
+          if (!existingNips.has(sp.nip)) {
+              MOCK_PEGAWAI.push(sp);
+          }
+      });
+
+      const disRows = parseCSV(disCsv);
+      MOCK_KEDISIPLINAN = disRows.map((row) => ({
+        nip: dataService.standardizeNip(row[0] || ''),
+        kehadiran: parseFloat(row[1]) || 0,
+        apel: parseFloat(row[2]) || 0,
+        logHarian: parseFloat(row[3]) || 0,
+        pelaporan: parseFloat(row[4]) || 0,
+        nilaiAkhir: parseFloat(row[5]) || 0
       }));
 
-      const stRows = parseCSV(stCsv);
-      MOCK_PENUGASAN = stRows.map((row, idx) => ({
-        id: `st-${idx}`,
-        nomorSurat: row[0] || '',
-        namaPegawai: row[1] || '',
-        nip: (row[2] || '').replace(/\D/g, ''),
-        namaKegiatan: row[3] || '',
-        tanggalMulai: normalizeDate(row[4] || ''),
-        tanggalSelesai: normalizeDate(row[5] || ''),
-        jenisPenugasan: (row[6] as any) || 'Luring',
-        sumberBiaya: (row[7] as any) || 'BPMP',
-        biaya: parseInt(row[8]) || 0,
-        statusTugas: (row[9] as any) || 'Aktif',
-        laporanStatus: (row[10] as any) || 'Belum Upload',
-        lokasi: row[11] || '',
-        uraianTugas: row[12] || '', // Kolom M
-        hasilKerja: row[13] || '',  // Kolom N
-        dokumentasiFotos: row[14] ? row[14].split('|') : [], // Kolom O
-        penandatangan: row[15] || 'Kepala BPMP',
-        createdAt: new Date().toISOString()
-      }));
-
+      persistData();
       return true;
     } catch (e) {
-      console.error("Gagal sinkronisasi data:", e);
-      return false;
+      console.error("Gagal sinkronisasi metadata:", e);
+      return MOCK_PEGAWAI.length > 0;
     }
   },
 
   getPegawai: (unitKerja?: string) => unitKerja ? MOCK_PEGAWAI.filter(p => p.unitKerja === unitKerja) : MOCK_PEGAWAI,
-  
   getPenugasan: () => MOCK_PENUGASAN,
+  getPenugasanById: (id: string) => MOCK_PENUGASAN.find(p => p.id === id),
+
+  getReportReminders: (nip: string) => {
+    const today = dataService.getTodayWIT();
+    const userTasks = MOCK_PENUGASAN.filter(t => dataService.standardizeNip(t.nip) === dataService.standardizeNip(nip));
+    return {
+      active: userTasks.filter(t => t.laporanStatus === 'Belum Upload'),
+      missing: userTasks.filter(t => t.laporanStatus === 'Belum Upload' && today > t.tanggalSelesai)
+    };
+  },
 
   getPenugasanWithStatus: (unitKerja?: string) => {
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jayapura' });
+    const today = dataService.getTodayWIT();
     const todayObj = new Date(today);
-
-    let baseST = MOCK_PENUGASAN;
+    let baseST = [...MOCK_PENUGASAN];
     if (unitKerja) {
       const nips = new Set(MOCK_PEGAWAI.filter(p => p.unitKerja === unitKerja).map(p => p.nip));
       baseST = baseST.filter(st => nips.has(st.nip));
     }
-
     return baseST.map(st => {
       const endDateObj = new Date(st.tanggalSelesai);
       const diffTime = endDateObj.getTime() - todayObj.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 3600 * 24));
-      
       let statusLabel = 'Bertugas';
       let statusColor = 'emerald';
       let statusContext = 'Sedang berjalan';
       let priority = 3;
-
       if (st.laporanStatus === 'Sudah Upload') {
         statusLabel = 'Selesai';
         statusColor = 'blue';
@@ -143,14 +188,7 @@ export const dataService = {
         statusContext = diffDays === 0 ? 'Berakhir hari ini' : `Sisa ${diffDays} hari`;
         priority = 2;
       }
-
-      return {
-        ...st,
-        calculatedStatus: statusLabel,
-        calculatedColor: statusColor,
-        calculatedContext: statusContext,
-        priority
-      };
+      return { ...st, calculatedStatus: statusLabel, calculatedColor: statusColor, calculatedContext: statusContext, priority };
     });
   },
 
@@ -161,7 +199,7 @@ export const dataService = {
       laporanStatus: 'Sudah Upload',
       statusTugas: 'Selesai'
     } : t);
-    // In real app: POST to Google Apps Script here
+    persistData();
     return true;
   },
 
@@ -174,39 +212,125 @@ export const dataService = {
       hasilKerja: '',
       dokumentasiFotos: []
     } : t);
+    persistData();
     return true;
   },
 
-  getReportReminders: (nip: string) => {
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jayapura' });
-    const cleanNip = nip.replace(/\D/g, '');
-    const tasks = dataService.getPenugasanWithStatus().filter(t => t.nip === cleanNip);
-    
-    return {
-      active: tasks.filter(t => today >= t.tanggalMulai && today <= t.tanggalSelesai),
-      missing: tasks.filter(t => today > t.tanggalSelesai && t.laporanStatus === 'Belum Upload')
+  updatePenugasan: (taskId: string, updatedData: Partial<Penugasan>) => {
+    MOCK_PENUGASAN = MOCK_PENUGASAN.map(t => t.id === taskId ? {
+      ...t,
+      ...updatedData
+    } : t);
+    persistData();
+    return true;
+  },
+
+  deletePenugasan: (taskId: string) => {
+    MOCK_PENUGASAN = MOCK_PENUGASAN.filter(t => t.id !== taskId);
+    persistData();
+    return true;
+  },
+
+  addPenugasan: (task: Penugasan) => {
+    MOCK_PENUGASAN.push(task);
+    persistData();
+    return true;
+  },
+
+  addPenugasanBatch: (formData: any, employees: Pegawai[]) => {
+    const tasks: Penugasan[] = employees.map(emp => ({
+      ...formData,
+      id: `ST-${Date.now()}-${emp.nip}`,
+      namaPegawai: emp.nama,
+      nip: dataService.standardizeNip(emp.nip),
+      jabatan: emp.jabatan,
+      statusTugas: 'Aktif',
+      laporanStatus: 'Belum Upload',
+      createdAt: new Date().toISOString()
+    }));
+    MOCK_PENUGASAN.push(...tasks);
+    persistData();
+    return true;
+  },
+
+  resetPassword: (id: string, resetBy: string) => {
+    MOCK_PEGAWAI = MOCK_PEGAWAI.map(p => p.id === id ? {
+      ...p,
+      passwordChangeRequired: true,
+      lastPasswordResetBy: resetBy,
+      lastPasswordResetAt: new Date().toLocaleString('id-ID')
+    } : p);
+    persistData();
+    return true;
+  },
+
+  addPegawai: (data: Partial<Pegawai>) => {
+    const newP: Pegawai = {
+      id: `p-new-${Date.now()}`,
+      nama: data.nama || '',
+      nip: dataService.standardizeNip(data.nip || ''),
+      jabatan: data.jabatan || '',
+      unitKerja: data.unitKerja || '',
+      role: data.role || Role.PEGAWAI,
+      username: dataService.standardizeNip(data.nip || ''),
+      passwordChangeRequired: true
     };
+    MOCK_PEGAWAI.push(newP);
+    persistData();
+    return true;
   },
 
-  getKedisiplinan: (nip: string) => MOCK_KEDISIPLINAN.find(k => k.nip === (nip.replace(/\D/g, ''))),
-  getAllKedisiplinan: () => MOCK_KEDISIPLINAN,
+  exportDatabase: () => {
+    const data = {
+      penugasan: MOCK_PENUGASAN,
+      pegawai: MOCK_PEGAWAI,
+      exportAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `SI-KERTAS_BACKUP_MANUAL_${new Date().getTime()}.json`;
+    link.click();
+  },
+
+  clearDatabase: () => {
+    if (confirm('PERINGATAN: Semua data laporan dan penugasan yang Anda input manual akan DIHAPUS PERMANEN. Lanjutkan?')) {
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+      window.location.reload();
+    }
+  },
+
+  checkConflict: (nip: string, start: string, end: string, jenis: string) => {
+    if (jenis === 'Daring') return { conflict: false };
+    const cNip = dataService.standardizeNip(nip);
+    const hasLuring = MOCK_PENUGASAN.some(p => 
+      dataService.standardizeNip(p.nip) === cNip && 
+      p.jenisPenugasan === 'Luring' &&
+      ((start >= p.tanggalMulai && start <= p.tanggalSelesai) ||
+       (end >= p.tanggalMulai && end <= p.tanggalSelesai) ||
+       (p.tanggalMulai >= start && p.tanggalMulai <= end))
+    );
+    return { conflict: hasLuring, message: hasLuring ? `Pegawai terdeteksi memiliki penugasan LURING lain pada periode tsb.` : undefined };
+  },
+
+  getKedisiplinan: (nip: string) => MOCK_KEDISIPLINAN.find(k => k.nip === dataService.standardizeNip(nip)),
   getAllUsers: () => [...SYSTEM_USERS, ...MOCK_PEGAWAI],
+  getAllKedisiplinan: () => MOCK_KEDISIPLINAN,
   isBertugas: (nip: string) => {
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jayapura' });
-    const cleanNip = nip.replace(/\D/g, '');
-    return MOCK_PENUGASAN.some(p => p.nip === cleanNip && today >= p.tanggalMulai && today <= p.tanggalSelesai);
+    const today = dataService.getTodayWIT();
+    const cNip = dataService.standardizeNip(nip);
+    return MOCK_PENUGASAN.some(p => p.nip === cNip && today >= p.tanggalMulai && today <= p.tanggalSelesai);
   },
-
   getIdleDays: (nip: string) => {
-    const cleanNip = nip.replace(/\D/g, '');
-    if (dataService.isBertugas(cleanNip)) return 0;
-    const completed = MOCK_PENUGASAN.filter(p => p.nip === cleanNip).sort((a,b) => b.tanggalSelesai.localeCompare(a.tanggalSelesai));
+    const cNip = dataService.standardizeNip(nip);
+    if (dataService.isBertugas(cNip)) return 0;
+    const completed = MOCK_PENUGASAN.filter(p => p.nip === cNip).sort((a,b) => b.tanggalSelesai.localeCompare(a.tanggalSelesai));
     if (completed.length === 0) return 30;
     const lastDate = new Date(completed[0].tanggalSelesai);
     const today = new Date();
     return Math.max(0, Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 3600 * 24)));
   },
-
   getAverageDiscipline: (unitKerja?: string) => {
     let targetNips = MOCK_PEGAWAI;
     if (unitKerja) targetNips = targetNips.filter(p => p.unitKerja === unitKerja);
@@ -215,54 +339,6 @@ export const dataService = {
     const sum = relevantScores.reduce((acc, curr) => acc + curr.nilaiAkhir, 0);
     return Math.round(sum / relevantScores.length);
   },
-
-  addPenugasanBatch: (baseTask: Partial<Penugasan>, selectedPegawai: Pegawai[]) => {
-    const newTasks: Penugasan[] = selectedPegawai.map(p => ({
-      ...baseTask as Penugasan,
-      id: `st-${Date.now()}-${p.nip}`,
-      namaPegawai: p.nama,
-      nip: p.nip.replace(/\D/g, ''),
-      jabatan: p.jabatan,
-      statusTugas: 'Aktif',
-      laporanStatus: 'Belum Upload',
-      createdAt: new Date().toISOString()
-    }));
-    MOCK_PENUGASAN = [...newTasks, ...MOCK_PENUGASAN];
-    return true;
-  },
-
-  addPenugasan: (task: Penugasan) => {
-    MOCK_PENUGASAN = [task, ...MOCK_PENUGASAN];
-    return true;
-  },
-
-  addPegawai: (newPegawai: Partial<Pegawai>) => {
-    const p: Pegawai = {
-      id: `p-manual-${Date.now()}`,
-      nama: newPegawai.nama || 'Anonim',
-      nip: (newPegawai.nip || '').replace(/\D/g, ''),
-      jabatan: newPegawai.jabatan || '-',
-      unitKerja: newPegawai.unitKerja || 'Umum',
-      role: newPegawai.role || Role.PEGAWAI,
-      username: (newPegawai.nip || '').replace(/\D/g, ''),
-      passwordChangeRequired: false
-    };
-    MOCK_PEGAWAI = [p, ...MOCK_PEGAWAI];
-    return p;
-  },
-
-  resetPassword: (empId: string, resetBy: string) => {
-    MOCK_PEGAWAI = MOCK_PEGAWAI.map(e => e.id === empId ? { ...e, passwordChangeRequired: true } : e);
-    return true;
-  },
-
-  checkConflict: (nip: string, start: string, end: string, type: string) => {
-    if (type === 'Daring') return { conflict: false };
-    const cleanNip = nip.replace(/\D/g, '');
-    const overlapping = MOCK_PENUGASAN.find(t => t.nip === cleanNip && t.jenisPenugasan === 'Luring' && (start <= t.tanggalSelesai && end >= t.tanggalMulai));
-    return overlapping ? { conflict: true, message: `BENTROK: Pegawai bertugas di ${overlapping.lokasi}` } : { conflict: false };
-  },
-
   getDailyStatus: (dateStr: string, unitKerja?: string) => {
     let employees = MOCK_PEGAWAI;
     let tasks = MOCK_PENUGASAN;

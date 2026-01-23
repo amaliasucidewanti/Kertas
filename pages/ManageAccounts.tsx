@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Pegawai, Role } from '../types';
 import { dataService } from '../services/dataService';
-import { RefreshCw, Search, ShieldCheck, History, AlertCircle, UserPlus, X, Save } from 'lucide-react';
+import { RefreshCw, Search, ShieldCheck, History, AlertCircle, UserPlus, X, Save, Database, Download, Trash2 } from 'lucide-react';
 
 const ManageAccounts: React.FC<{ user: Pegawai }> = ({ user }) => {
   const [search, setSearch] = useState('');
@@ -58,7 +58,7 @@ const ManageAccounts: React.FC<{ user: Pegawai }> = ({ user }) => {
   });
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-7xl mx-auto">
+    <div className="space-y-8 animate-fade-in max-w-7xl mx-auto pb-32">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
         <div>
           <h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase italic">Keamanan & Akses Akun</h1>
@@ -82,10 +82,55 @@ const ManageAccounts: React.FC<{ user: Pegawai }> = ({ user }) => {
               placeholder="Cari NIP atau Nama..." 
               className="w-full pl-12 pr-6 py-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold shadow-sm outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
               value={search}
+              // Fixed: replaced setSearchTerm with correct setSearch function
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
         </div>
+      </div>
+
+      {/* WIDGET PEMELIHARAAN DATA (ADMIN ONLY) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 no-print">
+         <div className="bg-slate-900 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform"><Database size={120} /></div>
+            <h3 className="text-xs font-black uppercase tracking-widest text-indigo-400 mb-6 flex items-center gap-2">
+               <ShieldCheck size={14} /> Pemeliharaan Database Lokal
+            </h3>
+            <p className="text-xs text-slate-400 font-bold mb-8 leading-relaxed italic">
+               Gunakan fitur ini untuk mencadangkan seluruh data laporan dan penugasan yang tersimpan di browser Anda ke dalam file fisik.
+            </p>
+            <div className="flex flex-wrap gap-4">
+               <button 
+                onClick={() => dataService.exportDatabase()}
+                className="flex items-center gap-3 bg-white/10 hover:bg-white/20 border border-white/10 px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+               >
+                  <Download size={14} /> Ekspor Backup JSON
+               </button>
+               <button 
+                onClick={() => dataService.clearDatabase()}
+                className="flex items-center gap-3 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/10 text-rose-400 px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+               >
+                  <Trash2 size={14} /> Reset Cache Lokal
+               </button>
+            </div>
+         </div>
+
+         <div className="bg-indigo-50 rounded-[3rem] p-10 border border-indigo-100 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-5"><RefreshCw size={120} /></div>
+            <h3 className="text-xs font-black uppercase tracking-widest text-indigo-600 mb-6 flex items-center gap-2">
+               <History size={14} /> Status Sinkronisasi
+            </h3>
+            <div className="space-y-4">
+               <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-indigo-100">
+                  <span className="text-[9px] font-black uppercase text-slate-400">Total Penugasan Terkunci</span>
+                  <span className="text-sm font-black text-indigo-600">{dataService.getPenugasan().length} Entri</span>
+               </div>
+               <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-indigo-100">
+                  <span className="text-[9px] font-black uppercase text-slate-400">Total Akun Terdeteksi</span>
+                  <span className="text-sm font-black text-indigo-600">{dataService.getAllUsers().length} Akun</span>
+               </div>
+            </div>
+         </div>
       </div>
 
       <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden">
@@ -248,4 +293,5 @@ const ManageAccounts: React.FC<{ user: Pegawai }> = ({ user }) => {
   );
 };
 
+// Added missing default export
 export default ManageAccounts;

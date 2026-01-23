@@ -1,28 +1,30 @@
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Pegawai, Penugasan, Role } from '../types';
 import { dataService } from '../services/dataService';
+// @ts-ignore
+import { useLocation } from 'react-router-dom';
 import { 
   FileText, 
   Camera, 
-  CheckCircle2, 
-  ChevronRight, 
   ChevronLeft, 
   Printer, 
   X, 
   Image as ImageIcon,
   Save,
-  AlertTriangle,
   Info,
   Trash2,
   Search,
   ArrowRight,
   UploadCloud,
-  Eye,
   User,
-  Download,
-  // Added missing RefreshCw icon
-  RefreshCw
+  RefreshCw,
+  Filter,
+  CheckCircle2,
+  Lock,
+  FileDown,
+  History,
+  AlertCircle
 } from 'lucide-react';
 
 interface LaporanTugasProps {
@@ -30,104 +32,105 @@ interface LaporanTugasProps {
 }
 
 const LaporanTugas: React.FC<LaporanTugasProps> = ({ user }) => {
+  const location = useLocation();
   const [activeTask, setActiveTask] = useState<Penugasan | null>(null);
   const [step, setStep] = useState<'list' | 'form' | 'preview'>('list');
   const [searchTerm, setSearchTerm] = useState('');
+  const [onlyMyTasks, setOnlyMyTasks] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSaving, setIsSaving] = useState(false);
   
+  // State Laporan Sesuai Format Baru
   const [formLaporan, setFormLaporan] = useState({
-    pendahuluan: '',
-    pelaksanaan: '',
-    hasilKerja: '',
+    latarBelakang: '',
+    maksudTujuan: '',
+    ruangLingkup: '',
+    dasarLaporan: '',
+    kegiatan: '',
+    hasil: '',
+    simpulan: '',
     penutup: 'Demikian laporan ini dibuat untuk dipergunakan sebagaimana mestinya.',
     fotos: [] as string[],
   });
 
   const brandingLogo = "https://lh3.googleusercontent.com/d/17vRGmP8EH8YSyeQn4GBxoszYRsYVLE3k";
+  const currentUserNip = dataService.standardizeNip(user.nip);
+
+  useEffect(() => {
+    if (location.state?.autoOpenTaskId) {
+      const task = dataService.getPenugasanById(location.state.autoOpenTaskId);
+      if (task) handleAction(task);
+    }
+  }, [location.state]);
 
   const filteredTasks = useMemo(() => {
     const all = dataService.getPenugasanWithStatus();
     return all.filter(t => {
-      const searchMatches = 
-        t.namaKegiatan.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        t.nomorSurat.includes(searchTerm) ||
-        t.namaPegawai.toLowerCase().includes(searchTerm.toLowerCase());
+      const isOwner = dataService.standardizeNip(t.nip) === currentUserNip;
+      const isUploaded = t.laporanStatus === 'Sudah Upload';
+      if (onlyMyTasks && !isOwner) return false;
+      if (!onlyMyTasks && !isUploaded && !isOwner) return false;
+      const searchMatches = t.namaKegiatan.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           t.nomorSurat.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           t.namaPegawai.toLowerCase().includes(searchTerm.toLowerCase());
       return searchMatches;
     }).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [searchTerm]);
+  }, [searchTerm, onlyMyTasks, currentUserNip]);
 
   const handleAction = (task: Penugasan) => {
-    const isOwner = task.nip.replace(/\D/g, '') === user.nip.replace(/\D/g, '');
+    const isOwner = dataService.standardizeNip(task.nip) === currentUserNip;
     const isUploaded = task.laporanStatus === 'Sudah Upload';
-
     setActiveTask(task);
-    
-    // Sinkronisasi data awal
     setFormLaporan({
-      pendahuluan: 'Sesuai dengan Surat Tugas terlampir, kegiatan dilaksanakan dalam rangka mendukung peningkatan mutu pendidikan melalui pendampingan intensif.',
-      pelaksanaan: task.uraianTugas || '',
-      hasilKerja: task.hasilKerja || '',
-      penutup: 'Demikian laporan ini dibuat untuk dipergunakan sebagaimana mestinya.',
+      latarBelakang: task.latarBelakang || `Dalam rangka pelaksanaan program peningkatan mutu pendidikan, dipandang perlu untuk melaksanakan ${task.namaKegiatan} guna memastikan tercapainya target kinerja unit kerja.`,
+      maksudTujuan: task.maksudTujuan || `Maksud dari penugasan ini adalah untuk melakukan koordinasi dan fasilitasi teknis terkait ${task.namaKegiatan} dengan tujuan tercapainya efektivitas implementasi kebijakan di daerah.`,
+      ruangLingkup: task.ruangLingkup || `Ruang lingkup laporan ini meliputi persiapan, pelaksanaan, hingga evaluasi hasil kegiatan ${task.namaKegiatan} di ${task.lokasi}.`,
+      dasarLaporan: task.dasarLaporan || `Surat Tugas Nomor ${task.nomorSurat} tanggal ${task.tanggalMulai}.`,
+      kegiatan: task.uraianTugas || '',
+      hasil: task.hasilKerja || '',
+      simpulan: task.simpulanSaran || '',
+      penutup: task.penutupLaporan || 'Demikian laporan ini dibuat untuk dipergunakan sebagaimana mestinya.',
       fotos: task.dokumentasiFotos || [],
     });
-
-    if (isOwner) {
-      setStep('form');
-    } else if (isUploaded) {
-      setStep('preview');
-    } else {
-      alert('Informasi: Laporan ini belum diisi oleh pelaksana tugas.');
-    }
+    if (isOwner) setStep('form');
+    else if (isUploaded) setStep('preview');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-
     Array.from(files).forEach(file => {
-      if (formLaporan.fotos.length >= 6) {
-        alert('Maksimal 6 foto diperbolehkan.');
-        return;
-      }
+      if (formLaporan.fotos.length >= 6) return;
       const reader = new FileReader();
       reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setFormLaporan(prev => ({
-          ...prev,
-          fotos: [...prev.fotos, base64String]
-        }));
+        setFormLaporan(prev => ({ ...prev, fotos: [...prev.fotos, reader.result as string] }));
       };
       reader.readAsDataURL(file);
     });
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  // Added removePhoto function to handle photo deletion
-  const removePhoto = (index: number) => {
-    setFormLaporan(prev => ({
-      ...prev,
-      fotos: prev.fotos.filter((_, i) => i !== index)
-    }));
   };
 
   const handleSaveLaporan = () => {
-    if (formLaporan.pelaksanaan.length < 50) {
-      alert('Narasi Uraian Pelaksanaan minimal 50 karakter agar laporan akuntabel.');
+    const { latarBelakang, kegiatan, hasil, simpulan, fotos } = formLaporan;
+    if (!latarBelakang || !kegiatan || !hasil || !simpulan) {
+      alert('Mohon lengkapi seluruh bagian laporan (A s.d D).');
       return;
     }
-    if (formLaporan.fotos.length < 3) {
-      alert('Wajib mengunggah minimal 3 foto sebagai bukti fisik pelaksanaan tugas.');
+    if (fotos.length < 3) {
+      alert('Wajib mengunggah minimal 3 foto dokumentasi sebagai bukti fisik.');
       return;
     }
-
     setIsSaving(true);
-    // Simulasi Delay untuk Efek Interaktif
     setTimeout(() => {
       dataService.saveLaporan(activeTask!.id, {
-        uraianTugas: formLaporan.pelaksanaan,
-        hasilKerja: formLaporan.hasilKerja,
+        latarBelakang: formLaporan.latarBelakang,
+        maksudTujuan: formLaporan.maksudTujuan,
+        ruangLingkup: formLaporan.ruangLingkup,
+        dasarLaporan: formLaporan.dasarLaporan,
+        uraianTugas: formLaporan.kegiatan,
+        hasilKerja: formLaporan.hasil,
+        simpulanSaran: formLaporan.simpulan,
+        penutupLaporan: formLaporan.penutup,
         dokumentasiFotos: formLaporan.fotos
       });
       setIsSaving(false);
@@ -135,269 +138,209 @@ const LaporanTugas: React.FC<LaporanTugasProps> = ({ user }) => {
     }, 1000);
   };
 
-  const confirmFinish = () => {
-    alert('Sukses! Laporan berhasil diselesaikan dan diarsipkan.');
-    setStep('list');
-    setActiveTask(null);
-  };
-
-  const handleDelete = (taskId: string) => {
-    if (window.confirm('Hapus laporan? Status akan kembali ke "Belum Upload".')) {
-      dataService.deleteLaporan(taskId);
-      window.location.reload();
-    }
-  };
-
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-32 animate-fade-in">
       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
 
-      {/* 1. LIST VIEW */}
       {step === 'list' && (
         <div className="space-y-8">
           <div className="bg-slate-900 rounded-[3rem] p-12 text-white shadow-2xl relative overflow-hidden">
              <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none rotate-12"><FileText size={240}/></div>
              <div className="relative z-10">
-                <h1 className="text-4xl font-black italic tracking-tighter uppercase leading-none">Pusat Laporan Kerja Tuntas</h1>
-                <p className="text-indigo-400 font-black text-[10px] uppercase tracking-[0.3em] mt-4 italic opacity-80">Sinkronisasi Real-time dengan Database Surat Tugas TA 2026</p>
+                <h1 className="text-4xl font-black italic tracking-tighter uppercase leading-none">Arsip Laporan Dinas</h1>
+                <p className="text-indigo-400 font-black text-[10px] uppercase tracking-[0.3em] mt-4 italic opacity-80">Format Laporan Resmi Sesuai Tata Naskah Dinas BPMP</p>
              </div>
           </div>
-
           <div className="bg-white rounded-[3.5rem] p-10 shadow-sm border border-slate-100">
              <div className="flex flex-col md:flex-row gap-6 justify-between items-center mb-10">
-                <div className="relative w-full md:w-96">
-                   <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                   <input 
-                    type="text" placeholder="Cari Nama Pegawai atau No. ST..." 
-                    className="w-full pl-12 pr-6 py-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-indigo-500 focus:bg-white outline-none font-bold text-sm transition-all shadow-inner"
-                    value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-                   />
-                </div>
-                <div className="flex items-center gap-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                   <Info size={14} className="text-indigo-500"/>
-                   User: {user.nama} ({user.nip})
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                   <div className="relative flex-1 md:w-96">
+                      <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                      <input 
+                       type="text" placeholder="Cari No. ST atau Kegiatan..." 
+                       className="w-full pl-12 pr-6 py-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-indigo-500 focus:bg-white outline-none font-bold text-sm shadow-inner transition-all"
+                       value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                      />
+                   </div>
+                   <button onClick={() => setOnlyMyTasks(!onlyMyTasks)} className={`px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${onlyMyTasks ? 'bg-indigo-600 text-white shadow-xl' : 'bg-slate-100 text-slate-400'}`}>
+                     <Filter size={16} /> {onlyMyTasks ? 'Hanya Tugas Saya' : 'Lihat Semua Laporan'}
+                   </button>
                 </div>
              </div>
-
              <div className="space-y-4">
-                {filteredTasks.length > 0 ? filteredTasks.map(task => {
-                  const isOwner = task.nip.replace(/\D/g, '') === user.nip.replace(/\D/g, '');
+                {filteredTasks.map(task => {
+                  const isOwner = dataService.standardizeNip(task.nip) === currentUserNip;
                   const isUploaded = task.laporanStatus === 'Sudah Upload';
-
                   return (
-                    <div key={task.id} className={`p-8 rounded-[2.5rem] border transition-all bg-white group hover:shadow-xl flex flex-col lg:flex-row items-center justify-between gap-8 ${isOwner ? 'border-indigo-200 ring-2 ring-indigo-50/50' : 'border-slate-100'}`}>
-                       <div className="flex-1">
+                    <div key={task.id} className={`p-8 rounded-[2.5rem] border transition-all flex flex-col lg:flex-row items-center justify-between gap-8 ${isOwner ? 'border-indigo-200 bg-indigo-50/10' : 'border-slate-100 bg-white'}`}>
+                       <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-2">
-                             <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${isUploaded ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                                {isUploaded ? 'Laporan Tuntas' : 'Belum Lapor'}
-                             </span>
-                             {isOwner && <span className="px-3 py-1 bg-indigo-600 text-white rounded-full text-[8px] font-black uppercase tracking-widest">Tugas Saya</span>}
+                             <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${isUploaded ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>{isUploaded ? 'Selesai' : 'Belum Lapor'}</span>
                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{task.nomorSurat}</p>
                           </div>
-                          <h3 className="text-lg font-black text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors uppercase italic">{task.namaKegiatan}</h3>
-                          <div className="flex gap-4 mt-4 text-[10px] font-bold text-slate-400 uppercase italic">
-                             <span className="flex items-center gap-2"><User size={12} className="text-indigo-400"/> {task.namaPegawai}</span>
-                             <span className="flex items-center gap-2"><ImageIcon size={12} className="text-indigo-400"/> {isUploaded ? `${task.dokumentasiFotos?.length || 0} Foto` : 'Belum Ada Dokumentasi'}</span>
+                          <h3 className="text-lg font-black text-slate-800 uppercase italic truncate">{task.namaKegiatan}</h3>
+                          <div className="flex gap-4 mt-3 text-[10px] font-bold text-slate-400 uppercase italic">
+                             <span className="flex items-center gap-2"><User size={12}/> {task.namaPegawai}</span>
+                             <span className="flex items-center gap-2"><History size={12}/> {task.tanggalMulai}</span>
                           </div>
                        </div>
-                       <div className="flex items-center gap-4">
-                          {isOwner && isUploaded && (
-                             <button onClick={() => handleDelete(task.id)} className="p-4 bg-rose-50 text-rose-500 rounded-2xl hover:bg-rose-500 hover:text-white transition-all">
-                                <Trash2 size={20}/>
-                             </button>
-                          )}
-                          <button 
-                            onClick={() => handleAction(task)}
-                            className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center gap-3 transition-all ${
-                              isOwner 
-                                ? 'bg-slate-900 text-white hover:bg-black' 
-                                : isUploaded 
-                                  ? 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white' 
-                                  : 'bg-slate-100 text-slate-300 cursor-not-allowed'
-                            }`}
-                            disabled={!isOwner && !isUploaded}
-                          >
-                             {isOwner 
-                               ? (isUploaded ? 'Edit Laporan Saya' : 'Lengkapi Laporan') 
-                               : (isUploaded ? 'Lihat Laporan Rekan' : 'Belum Tersedia')}
-                             {isOwner ? <ArrowRight size={16}/> : isUploaded ? <Eye size={16}/> : null}
-                          </button>
-                       </div>
+                       <button onClick={() => handleAction(task)} className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center gap-3 ${isOwner ? 'bg-slate-900 text-white' : 'bg-indigo-50 text-indigo-600'}`}>
+                          {isOwner ? (isUploaded ? 'Revisi Laporan' : 'Lapor Sekarang') : 'Lihat Laporan'}
+                          <ArrowRight size={16}/>
+                       </button>
                     </div>
-                  );
-                }) : (
-                  <div className="py-20 text-center text-slate-300 font-black italic uppercase tracking-widest">Data Tidak Ditemukan.</div>
-                )}
+                  )
+                })}
              </div>
           </div>
         </div>
       )}
 
-      {/* 2. FORM VIEW (Hanya Pemilik) */}
       {step === 'form' && activeTask && (
-        <div className="space-y-8 animate-slide-right">
+        <div className="space-y-8 animate-slide-right max-w-5xl mx-auto">
            <div className="flex items-center justify-between">
-              <button onClick={() => setStep('list')} className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-600 transition-colors">
-                 <ChevronLeft size={20}/> Batal & Kembali
-              </button>
-              <h2 className="text-2xl font-black text-slate-800 uppercase italic tracking-tighter">Pengisian Output Laporan</h2>
+              <button onClick={() => setStep('list')} className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-widest"><ChevronLeft size={20}/> Kembali</button>
+              <h2 className="text-2xl font-black text-slate-800 uppercase italic">Penyusunan Laporan Penugasan</h2>
            </div>
 
-           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              <div className="lg:col-span-8 bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-10">
-                 <div className="space-y-8">
-                    <div className="p-6 bg-indigo-50 rounded-3xl border border-indigo-100 mb-6">
-                       <h4 className="text-[10px] font-black uppercase text-indigo-600 mb-2">Data Penugasan Dasar</h4>
-                       <p className="text-sm font-bold text-slate-700 leading-relaxed italic">"Berdasarkan ST Nomor {activeTask.nomorSurat}, kegiatan ini dilaksanakan di {activeTask.lokasi} dari tanggal {activeTask.tanggalMulai}."</p>
-                    </div>
-
+           <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-12">
+              <section className="space-y-6">
+                 <div className="flex items-center gap-3 border-b pb-4"><CheckCircle2 className="text-indigo-600"/><h3 className="text-xs font-black uppercase tracking-widest">A. Pendahuluan</h3></div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">B. Uraian Pelaksanaan Kegiatan * (Min. 50 Karakter)</label>
-                       <textarea required value={formLaporan.pelaksanaan} onChange={e => setFormLaporan({...formLaporan, pelaksanaan: e.target.value})} className="w-full bg-slate-50 border border-slate-100 p-6 rounded-3xl text-sm font-medium h-48 focus:border-indigo-500 outline-none shadow-inner" placeholder="Jelaskan detail apa yang Anda lakukan, kendala, dan prosesnya..."></textarea>
+                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">1. Latar Belakang</label>
+                       <textarea value={formLaporan.latarBelakang} onChange={e => setFormLaporan({...formLaporan, latarBelakang: e.target.value})} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-sm h-32 focus:border-indigo-500 outline-none"></textarea>
                     </div>
                     <div className="space-y-2">
-                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">C. Hasil yang Dicapai * (Min. 50 Karakter)</label>
-                       <textarea required value={formLaporan.hasilKerja} onChange={e => setFormLaporan({...formLaporan, hasilKerja: e.target.value})} className="w-full bg-slate-50 border border-slate-100 p-6 rounded-3xl text-sm font-medium h-48 focus:border-indigo-500 outline-none shadow-inner" placeholder="Sebutkan output konkrit, data, atau dokumen yang dihasilkan..."></textarea>
+                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">2. Maksud dan Tujuan</label>
+                       <textarea value={formLaporan.maksudTujuan} onChange={e => setFormLaporan({...formLaporan, maksudTujuan: e.target.value})} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-sm h-32 focus:border-indigo-500 outline-none"></textarea>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">3. Ruang Lingkup</label>
+                       <textarea value={formLaporan.ruangLingkup} onChange={e => setFormLaporan({...formLaporan, ruangLingkup: e.target.value})} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-sm h-32 focus:border-indigo-500 outline-none"></textarea>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">4. Dasar</label>
+                       <textarea value={formLaporan.dasarLaporan} onChange={e => setFormLaporan({...formLaporan, dasarLaporan: e.target.value})} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-sm h-32 focus:border-indigo-500 outline-none"></textarea>
                     </div>
                  </div>
+              </section>
 
-                 <div className="pt-10 border-t border-slate-100 flex justify-end">
-                    <button 
-                      onClick={handleSaveLaporan} 
-                      disabled={isSaving}
-                      className="bg-indigo-600 text-white px-12 py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-widest shadow-2xl hover:bg-indigo-700 transition-all transform hover:scale-105 flex items-center gap-3 active:scale-95 disabled:opacity-50"
-                    >
-                       {isSaving ? <RefreshCw className="animate-spin" size={18}/> : <Save size={18}/>}
-                       {isSaving ? 'Menyinkronkan...' : 'Simpan & Lihat Pratinjau'}
-                    </button>
-                 </div>
-              </div>
+              <section className="space-y-6">
+                 <div className="flex items-center gap-3 border-b pb-4"><CheckCircle2 className="text-indigo-600"/><h3 className="text-xs font-black uppercase tracking-widest">B. Kegiatan yang Dilaksanakan</h3></div>
+                 <textarea value={formLaporan.kegiatan} onChange={e => setFormLaporan({...formLaporan, kegiatan: e.target.value})} className="w-full bg-slate-50 border border-slate-100 p-6 rounded-3xl text-sm h-48 focus:border-indigo-500 outline-none shadow-inner" placeholder="Uraikan jalannya pelaksanaan tugas secara kronologis..."></textarea>
+              </section>
 
-              <div className="lg:col-span-4 space-y-8">
-                 <div className="bg-slate-900 p-10 rounded-[3.5rem] text-white shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-8 opacity-10"><Camera size={100}/></div>
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-8">Lampiran Foto (Wajib Minimal 3)</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                       {formLaporan.fotos.map((f, i) => (
-                         <div key={i} className="relative aspect-square bg-white/10 rounded-2xl overflow-hidden group border border-white/10">
-                            <img src={f} className="w-full h-full object-cover" />
-                            <button onClick={() => removePhoto(i)} className="absolute top-2 right-2 p-1.5 bg-rose-600 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"><X size={12}/></button>
-                         </div>
-                       ))}
-                       {formLaporan.fotos.length < 6 && (
-                         <button onClick={() => fileInputRef.current?.click()} className="aspect-square border-2 border-dashed border-white/20 rounded-2xl flex flex-col items-center justify-center text-white/40 hover:text-white hover:border-white/50 transition-all bg-white/5">
-                            <UploadCloud size={32} /><span className="text-[8px] font-black uppercase mt-2">Pilih File</span>
-                         </button>
-                       )}
-                    </div>
-                    <div className="mt-6 flex items-center justify-between text-[10px] font-bold">
-                       <span className="text-slate-400 uppercase">Jumlah Terunggah:</span>
-                       <span className={`px-3 py-1 rounded-lg ${formLaporan.fotos.length >= 3 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
-                          {formLaporan.fotos.length} / 3 Foto
-                       </span>
-                    </div>
+              <section className="space-y-6">
+                 <div className="flex items-center gap-3 border-b pb-4"><CheckCircle2 className="text-indigo-600"/><h3 className="text-xs font-black uppercase tracking-widest">C. Hasil yang Dicapai</h3></div>
+                 <textarea value={formLaporan.hasil} onChange={e => setFormLaporan({...formLaporan, hasil: e.target.value})} className="w-full bg-slate-50 border border-slate-100 p-6 rounded-3xl text-sm h-48 focus:border-indigo-500 outline-none shadow-inner" placeholder="Sebutkan output konkrit dan data dukung yang dihasilkan..."></textarea>
+              </section>
+
+              <section className="space-y-6">
+                 <div className="flex items-center gap-3 border-b pb-4"><CheckCircle2 className="text-indigo-600"/><h3 className="text-xs font-black uppercase tracking-widest">D. Simpulan dan Saran</h3></div>
+                 <textarea value={formLaporan.simpulan} onChange={e => setFormLaporan({...formLaporan, simpulan: e.target.value})} className="w-full bg-slate-50 border border-slate-100 p-6 rounded-3xl text-sm h-48 focus:border-indigo-500 outline-none shadow-inner" placeholder="Tuliskan kesimpulan kegiatan dan saran tindak lanjut..."></textarea>
+              </section>
+
+              <section className="space-y-6">
+                 <div className="flex items-center gap-3 border-b pb-4"><Camera className="text-indigo-600"/><h3 className="text-xs font-black uppercase tracking-widest">Dokumentasi Foto (Wajib Min. 3 Foto)</h3></div>
+                 <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+                    {formLaporan.fotos.map((f, i) => (
+                      <div key={i} className="relative aspect-square rounded-2xl overflow-hidden shadow-lg border-4 border-white">
+                        <img src={f} className="w-full h-full object-cover" />
+                        <button onClick={() => setFormLaporan(p => ({...p, fotos: p.fotos.filter((_, idx) => idx !== i)}))} className="absolute top-1 right-1 p-1 bg-rose-600 text-white rounded-full"><X size={12}/></button>
+                      </div>
+                    ))}
+                    {formLaporan.fotos.length < 6 && (
+                      <button onClick={() => fileInputRef.current?.click()} className="aspect-square border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-300 hover:text-indigo-500 hover:border-indigo-500 transition-all"><UploadCloud size={32}/><span className="text-[8px] font-black uppercase mt-1">Upload</span></button>
+                    )}
                  </div>
+              </section>
+
+              <div className="pt-10 flex justify-end">
+                 <button onClick={handleSaveLaporan} disabled={isSaving} className="bg-indigo-600 text-white px-12 py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-widest shadow-2xl flex items-center gap-3 disabled:opacity-30">
+                    {isSaving ? <RefreshCw className="animate-spin"/> : <Save/>} {isSaving ? 'Menyimpan...' : 'Finalisasi Laporan'}
+                 </button>
               </div>
            </div>
         </div>
       )}
 
-      {/* 3. PREVIEW VIEW (Publik) */}
       {step === 'preview' && activeTask && (
-        <div className="space-y-8 animate-fade-in">
-           <div className="flex flex-col sm:flex-row justify-between items-center gap-6 no-print bg-white/80 backdrop-blur-md p-6 rounded-[2.5rem] sticky top-4 z-30 shadow-xl border border-white">
-              <button onClick={() => setStep('list')} className="flex items-center gap-3 text-slate-500 font-black uppercase text-[10px] tracking-[0.2em] hover:text-indigo-600 transition-colors">
-                <ChevronLeft size={20}/> Kembali ke Daftar
-              </button>
+        <div className="space-y-8 animate-fade-in no-print">
+           <div className="flex justify-between bg-white/80 backdrop-blur-md p-6 rounded-[2.5rem] sticky top-4 z-30 shadow-xl border border-white">
+              <button onClick={() => setStep('list')} className="flex items-center gap-3 text-slate-500 font-black uppercase text-[10px] tracking-widest"><ChevronLeft size={20}/> Kembali</button>
               <div className="flex gap-4">
-                <button onClick={() => window.print()} className="bg-slate-800 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 shadow-xl hover:bg-black transition-all">
-                  <Printer size={18}/> Cetak Laporan PDF
-                </button>
-                {activeTask.nip.replace(/\D/g, '') === user.nip.replace(/\D/g, '') && (
-                  <button onClick={confirmFinish} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 shadow-2xl hover:bg-indigo-700 transition-all">
-                    <Save size={18}/> Finalisasi & Selesai
-                  </button>
-                )}
+                <button onClick={() => window.print()} className="bg-slate-800 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3"><Printer size={18}/> Cetak PDF</button>
+                {dataService.standardizeNip(activeTask.nip) === currentUserNip && <button onClick={() => setStep('form')} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3"><Save size={18}/> Revisi Data</button>}
               </div>
            </div>
 
-           {/* DOKUMEN LAPORAN RESMI */}
-           <div className="bg-white p-[25mm] shadow-2xl relative border border-slate-100 print-container mx-auto overflow-hidden text-slate-900 font-serif leading-relaxed" style={{ width: '210mm', minHeight: '297mm' }}>
-              <div className="relative z-10">
-                <div className="border-b-[4px] border-slate-900 pb-4 mb-10 flex items-center text-center">
-                   <img src={brandingLogo} className="w-24 h-24 mr-8 grayscale brightness-0" />
-                   <div className="flex-1">
-                     <h2 className="text-[14pt] font-bold uppercase leading-tight mb-1">Kementerian Pendidikan, Kebudayaan, Riset, Dan Teknologi</h2>
-                     <h3 className="text-[16pt] font-black uppercase leading-tight mb-2">Balai Penjaminan Mutu Pendidikan (BPMP)</h3>
-                     <p className="text-[10pt] font-sans italic opacity-90 leading-tight text-center">
-                       Kompleks Perkantoran Pemerintah, Ternate, Maluku Utara<br/>
-                       Laman: bpmp.kemdikbud.go.id | Email: bpmp.malut@kemdikbud.go.id
-                     </p>
-                   </div>
-                </div>
+           <div className="bg-white p-[25mm] shadow-2xl mx-auto overflow-hidden text-slate-900 font-serif leading-relaxed" style={{ width: '210mm', minHeight: '297mm' }}>
+              <div className="border-b-[4px] border-slate-900 pb-4 mb-10 flex items-center text-center">
+                 <img src={brandingLogo} className="w-20 h-20 mr-8 grayscale brightness-0" />
+                 <div className="flex-1">
+                   <h2 className="text-[12pt] font-bold uppercase leading-tight mb-1">Kementerian Pendidikan, Kebudayaan, Riset, Dan Teknologi</h2>
+                   <h3 className="text-[14pt] font-black uppercase leading-tight mb-2">Balai Penjaminan Mutu Pendidikan (BPMP)</h3>
+                   <p className="text-[9pt] font-sans italic opacity-80 leading-tight">Kompleks Perkantoran Pemerintah, Ternate, Maluku Utara</p>
+                 </div>
+              </div>
 
-                <div className="text-center mb-10 space-y-1">
-                   <h4 className="text-[14pt] font-black underline underline-offset-4 tracking-[0.1em] uppercase leading-none">LAPORAN HASIL KEGIATAN</h4>
-                   <p className="text-[11pt] font-sans font-bold">NOMOR ST: {activeTask.nomorSurat}</p>
-                </div>
+              <div className="text-center mb-10">
+                 <h4 className="text-[14pt] font-black uppercase leading-none">LAPORAN TENTANG</h4>
+                 <p className="text-[13pt] font-bold uppercase mt-2">{activeTask.namaKegiatan}</p>
+                 <div className="h-[1px] bg-slate-900 w-3/4 mx-auto mt-4"></div>
+              </div>
 
-                <div className="space-y-8 text-[11pt] font-serif text-justify">
-                   <div>
-                      <p className="font-bold mb-2">I. DASAR</p>
-                      <p className="pl-6">Surat Tugas Kepala BPMP Maluku Utara Nomor: {activeTask.nomorSurat} perihal {activeTask.namaKegiatan}.</p>
-                   </div>
-                   <div>
-                      <p className="font-bold mb-2">II. PENDAHULUAN</p>
-                      <p className="pl-6">{formLaporan.pendahuluan}</p>
-                   </div>
-                   <div>
-                      <p className="font-bold mb-2">III. PELAKSANAAN KEGIATAN</p>
-                      <div className="pl-6 space-y-4">
-                         <div className="grid grid-cols-4 gap-2">
-                            <div className="font-bold">Waktu</div>
-                            <div className="col-span-3">: {new Date(activeTask.tanggalMulai).toLocaleDateString('id-ID', { dateStyle: 'long' })} s.d. {new Date(activeTask.tanggalSelesai).toLocaleDateString('id-ID', { dateStyle: 'long' })}</div>
-                            <div className="font-bold">Tempat</div>
-                            <div className="col-span-3">: {activeTask.lokasi}</div>
-                            <div className="font-bold">Uraian</div>
-                            <div className="col-span-3">: {formLaporan.pelaksanaan}</div>
+              <div className="space-y-8 text-[11pt] text-justify leading-[1.8]">
+                 <div>
+                    <p className="font-bold">A. Pendahuluan</p>
+                    <div className="pl-8 space-y-4">
+                       <p><span className="font-bold">1. Latar Belakang:</span> {formLaporan.latarBelakang}</p>
+                       <p><span className="font-bold">2. Maksud dan Tujuan:</span> {formLaporan.maksudTujuan}</p>
+                       <p><span className="font-bold">3. Ruang Lingkup:</span> {formLaporan.ruangLingkup}</p>
+                       <p><span className="font-bold">4. Dasar:</span> {formLaporan.dasarLaporan}</p>
+                    </div>
+                 </div>
+                 <div>
+                    <p className="font-bold">B. Kegiatan yang Dilaksanakan</p>
+                    <p className="pl-8">{formLaporan.kegiatan}</p>
+                 </div>
+                 <div>
+                    <p className="font-bold">C. Hasil yang Dicapai</p>
+                    <p className="pl-8">{formLaporan.hasil}</p>
+                 </div>
+                 <div>
+                    <p className="font-bold">D. Simpulan dan Saran</p>
+                    <p className="pl-8">{formLaporan.simpulan}</p>
+                 </div>
+                 <div>
+                    <p className="font-bold">E. Penutup</p>
+                    <p className="pl-8">{formLaporan.penutup}</p>
+                 </div>
+              </div>
+
+              <div className="mt-20 flex justify-end font-sans">
+                 <div className="text-center w-80 space-y-24">
+                    <p>Dibuat di Ternate,<br/>Tanggal {new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
+                    <div className="space-y-1">
+                       <p className="font-black underline uppercase text-[11pt]">{activeTask.namaPegawai}</p>
+                       <p className="text-[10px] font-bold">NIP. {activeTask.nip}</p>
+                    </div>
+                 </div>
+              </div>
+
+              <div className="page-break-before mt-40">
+                 <div className="border-b-2 border-slate-900 pb-2 mb-10"><h4 className="text-[11pt] font-black uppercase text-center">LAMPIRAN DOKUMENTASI VISUAL</h4></div>
+                 <div className="grid grid-cols-2 gap-8">
+                    {formLaporan.fotos.map((f, i) => (
+                      <div key={i} className="space-y-2">
+                         <div className="aspect-video bg-slate-100 border border-slate-300 rounded overflow-hidden">
+                            <img src={f} className="w-full h-full object-cover grayscale" />
                          </div>
+                         <p className="text-[8pt] font-sans italic text-center opacity-60">Dokumentasi {i + 1}</p>
                       </div>
-                   </div>
-                   <div>
-                      <p className="font-bold mb-2">IV. HASIL YANG DICAPAI</p>
-                      <p className="pl-6">{formLaporan.hasilKerja}</p>
-                   </div>
-                   <div>
-                      <p className="font-bold mb-2">V. PENUTUP</p>
-                      <p className="pl-6">{formLaporan.penutup}</p>
-                   </div>
-                </div>
-
-                <div className="mt-20 flex justify-end font-sans">
-                   <div className="text-center w-80 space-y-24">
-                      <p>Ternate, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}<br/>Pelaksana Tugas,</p>
-                      <div className="space-y-1">
-                         <p className="font-black underline underline-offset-4 uppercase text-[11pt]">{activeTask.namaPegawai}</p>
-                         <p className="text-[10pt] font-bold">NIP. {activeTask.nip}</p>
-                      </div>
-                   </div>
-                </div>
-
-                <div className="page-break-before mt-40">
-                   <div className="border-b-2 border-slate-200 pb-4 mb-10">
-                      <h4 className="text-[12pt] font-black uppercase text-center">LAMPIRAN DOKUMENTASI KEGIATAN</h4>
-                   </div>
-                   <div className="grid grid-cols-2 gap-8">
-                      {formLaporan.fotos.map((f, i) => (
-                        <div key={i} className="space-y-3">
-                           <div className="aspect-video bg-slate-100 border border-slate-200 rounded-lg overflow-hidden">
-                              <img src={f} className="w-full h-full object-cover grayscale" />
-                           </div>
-                           <p className="text-[9pt] font-sans italic text-center text-slate-500">Gbr {i + 1}: Dokumentasi {activeTask.namaKegiatan}</p>
-                        </div>
-                      ))}
-                   </div>
-                </div>
+                    ))}
+                 </div>
               </div>
            </div>
         </div>
