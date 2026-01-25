@@ -10,21 +10,16 @@ import {
   ChevronLeft, 
   Printer, 
   X, 
-  Image as ImageIcon,
-  Save,
-  Info,
-  Trash2,
-  Search,
-  ArrowRight,
-  UploadCloud,
-  User,
-  RefreshCw,
-  Filter,
-  CheckCircle2,
-  Lock,
-  FileDown,
-  History,
-  AlertCircle
+  Save, 
+  Search, 
+  ArrowRight, 
+  UploadCloud, 
+  User, 
+  RefreshCw, 
+  Filter, 
+  CheckCircle2, 
+  History, 
+  AlertCircle 
 } from 'lucide-react';
 
 interface LaporanTugasProps {
@@ -36,7 +31,7 @@ const LaporanTugas: React.FC<LaporanTugasProps> = ({ user }) => {
   const [activeTask, setActiveTask] = useState<Penugasan | null>(null);
   const [step, setStep] = useState<'list' | 'form' | 'preview'>('list');
   const [searchTerm, setSearchTerm] = useState('');
-  const [onlyMyTasks, setOnlyMyTasks] = useState(true);
+  const [onlyMyTasks, setOnlyMyTasks] = useState(false); // Default changed to false for global visibility
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -67,9 +62,11 @@ const LaporanTugas: React.FC<LaporanTugasProps> = ({ user }) => {
     const all = dataService.getPenugasanWithStatus();
     return all.filter(t => {
       const isOwner = dataService.standardizeNip(t.nip) === currentUserNip;
-      const isUploaded = t.laporanStatus === 'Sudah Upload';
+      
+      // Feature 2: All users can view all reports regardless of submission status or owner.
+      // But we still allow filtering to see "Only My Tasks" for productivity.
       if (onlyMyTasks && !isOwner) return false;
-      if (!onlyMyTasks && !isUploaded && !isOwner) return false;
+      
       const searchMatches = t.namaKegiatan.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            t.nomorSurat.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            t.namaPegawai.toLowerCase().includes(searchTerm.toLowerCase());
@@ -92,8 +89,15 @@ const LaporanTugas: React.FC<LaporanTugasProps> = ({ user }) => {
       penutup: task.penutupLaporan || 'Demikian laporan ini dibuat untuk dipergunakan sebagaimana mestinya.',
       fotos: task.dokumentasiFotos || [],
     });
+
+    // Owners can always edit (form), others can only preview if uploaded.
     if (isOwner) setStep('form');
     else if (isUploaded) setStep('preview');
+    else {
+      // If not owner and not uploaded, we show a read-only form state or just stay on list with a notice.
+      // For now, let's allow "preview" but it will be empty except for header.
+      setStep('preview');
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -175,7 +179,7 @@ const LaporanTugas: React.FC<LaporanTugasProps> = ({ user }) => {
                     <div key={task.id} className={`p-8 rounded-[2.5rem] border transition-all flex flex-col lg:flex-row items-center justify-between gap-8 ${isOwner ? 'border-indigo-200 bg-indigo-50/10' : 'border-slate-100 bg-white'}`}>
                        <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-2">
-                             <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${isUploaded ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>{isUploaded ? 'Selesai' : 'Belum Lapor'}</span>
+                             <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${isUploaded ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>{isUploaded ? 'Sudah Dilaporkan' : 'Belum Dilaporkan'}</span>
                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{task.nomorSurat}</p>
                           </div>
                           <h3 className="text-lg font-black text-slate-800 uppercase italic truncate">{task.namaKegiatan}</h3>
@@ -276,6 +280,11 @@ const LaporanTugas: React.FC<LaporanTugasProps> = ({ user }) => {
            </div>
 
            <div className="bg-white p-[25mm] shadow-2xl mx-auto overflow-hidden text-slate-900 font-serif leading-relaxed" style={{ width: '210mm', minHeight: '297mm' }}>
+              {activeTask.laporanStatus === 'Belum Upload' && (
+                <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-[0.05]">
+                  <p className="text-[80pt] font-black uppercase rotate-45 border-8 border-rose-600 p-10 text-rose-600">BELUM LAPOR</p>
+                </div>
+              )}
               <div className="border-b-[4px] border-slate-900 pb-4 mb-10 flex items-center text-center">
                  <img src={brandingLogo} className="w-20 h-20 mr-8 grayscale brightness-0" />
                  <div className="flex-1">
@@ -295,27 +304,27 @@ const LaporanTugas: React.FC<LaporanTugasProps> = ({ user }) => {
                  <div>
                     <p className="font-bold">A. Pendahuluan</p>
                     <div className="pl-8 space-y-4">
-                       <p><span className="font-bold">1. Latar Belakang:</span> {formLaporan.latarBelakang}</p>
-                       <p><span className="font-bold">2. Maksud dan Tujuan:</span> {formLaporan.maksudTujuan}</p>
-                       <p><span className="font-bold">3. Ruang Lingkup:</span> {formLaporan.ruangLingkup}</p>
-                       <p><span className="font-bold">4. Dasar:</span> {formLaporan.dasarLaporan}</p>
+                       <p><span className="font-bold">1. Latar Belakang:</span> {formLaporan.latarBelakang || '...'}</p>
+                       <p><span className="font-bold">2. Maksud dan Tujuan:</span> {formLaporan.maksudTujuan || '...'}</p>
+                       <p><span className="font-bold">3. Ruang Lingkup:</span> {formLaporan.ruangLingkup || '...'}</p>
+                       <p><span className="font-bold">4. Dasar:</span> {formLaporan.dasarLaporan || '...'}</p>
                     </div>
                  </div>
                  <div>
                     <p className="font-bold">B. Kegiatan yang Dilaksanakan</p>
-                    <p className="pl-8">{formLaporan.kegiatan}</p>
+                    <p className="pl-8">{formLaporan.kegiatan || '...'}</p>
                  </div>
                  <div>
                     <p className="font-bold">C. Hasil yang Dicapai</p>
-                    <p className="pl-8">{formLaporan.hasil}</p>
+                    <p className="pl-8">{formLaporan.hasil || '...'}</p>
                  </div>
                  <div>
                     <p className="font-bold">D. Simpulan dan Saran</p>
-                    <p className="pl-8">{formLaporan.simpulan}</p>
+                    <p className="pl-8">{formLaporan.simpulan || '...'}</p>
                  </div>
                  <div>
                     <p className="font-bold">E. Penutup</p>
-                    <p className="pl-8">{formLaporan.penutup}</p>
+                    <p className="pl-8">{formLaporan.penutup || '...'}</p>
                  </div>
               </div>
 
@@ -329,19 +338,21 @@ const LaporanTugas: React.FC<LaporanTugasProps> = ({ user }) => {
                  </div>
               </div>
 
-              <div className="page-break-before mt-40">
-                 <div className="border-b-2 border-slate-900 pb-2 mb-10"><h4 className="text-[11pt] font-black uppercase text-center">LAMPIRAN DOKUMENTASI VISUAL</h4></div>
-                 <div className="grid grid-cols-2 gap-8">
-                    {formLaporan.fotos.map((f, i) => (
-                      <div key={i} className="space-y-2">
-                         <div className="aspect-video bg-slate-100 border border-slate-300 rounded overflow-hidden">
-                            <img src={f} className="w-full h-full object-cover grayscale" />
-                         </div>
-                         <p className="text-[8pt] font-sans italic text-center opacity-60">Dokumentasi {i + 1}</p>
-                      </div>
-                    ))}
-                 </div>
-              </div>
+              {formLaporan.fotos.length > 0 && (
+                <div className="page-break-before mt-40">
+                  <div className="border-b-2 border-slate-900 pb-2 mb-10"><h4 className="text-[11pt] font-black uppercase text-center">LAMPIRAN DOKUMENTASI VISUAL</h4></div>
+                  <div className="grid grid-cols-2 gap-8">
+                      {formLaporan.fotos.map((f, i) => (
+                        <div key={i} className="space-y-2">
+                          <div className="aspect-video bg-slate-100 border border-slate-300 rounded overflow-hidden">
+                              <img src={f} className="w-full h-full object-cover grayscale" />
+                          </div>
+                          <p className="text-[8pt] font-sans italic text-center opacity-60">Dokumentasi {i + 1}</p>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
            </div>
         </div>
       )}

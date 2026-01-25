@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Pegawai, Role } from '../types';
+import { Pegawai, Role, Penugasan } from '../types';
 import { dataService } from '../services/dataService';
 import { Search, Eye, Calendar, FileText, Activity } from 'lucide-react';
 
@@ -13,15 +13,25 @@ const EmployeeList: React.FC<{ user: Pegawai }> = ({ user }) => {
   const units = ['Semua', ...Array.from(new Set(employees.map(e => e.unitKerja)))];
 
   const filtered = useMemo(() => {
+    const today = dataService.getTodayWIT();
     return employees.filter(e => {
       const matchesSearch = e.nama.toLowerCase().includes(search.toLowerCase()) || e.nip.includes(search);
       const matchesUnit = unitFilter === 'Semua' || e.unitKerja === unitFilter;
       return matchesSearch && matchesUnit;
     }).map(e => {
-      // Hitung jumlah ST per pegawai
       const employeeTasks = tasks.filter(t => dataService.standardizeNip(t.nip) === dataService.standardizeNip(e.nip));
       const activeST = employeeTasks.filter(t => t.laporanStatus === 'Belum Upload').length;
-      return { ...e, totalST: employeeTasks.length, activeST };
+      
+      // Find active/current task for extra attributes
+      const currentTask = employeeTasks.find(t => today >= t.tanggalMulai && today <= t.tanggalSelesai);
+      
+      return { 
+        ...e, 
+        totalST: employeeTasks.length, 
+        activeST,
+        currentTaskType: currentTask?.jenisPenugasan || '-',
+        currentTaskCost: currentTask?.sumberBiaya || '-'
+      };
     });
   }, [employees, tasks, search, unitFilter]);
 
@@ -60,6 +70,8 @@ const EmployeeList: React.FC<{ user: Pegawai }> = ({ user }) => {
               <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                 <th className="px-8 py-6">Profil Pegawai</th>
                 <th className="px-8 py-6">Unit Kerja</th>
+                <th className="px-8 py-6 text-center">Jenis Tugas</th>
+                <th className="px-8 py-6 text-center">Biaya ST</th>
                 <th className="px-8 py-6 text-center">Rekap ST</th>
                 <th className="px-8 py-6">Status Kerja</th>
                 <th className="px-8 py-6 text-right">Opsi</th>
@@ -78,6 +90,16 @@ const EmployeeList: React.FC<{ user: Pegawai }> = ({ user }) => {
                        <span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black text-slate-500 uppercase tracking-widest">
                          {emp.unitKerja}
                        </span>
+                    </td>
+                    <td className="px-8 py-6 text-center">
+                      <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${emp.currentTaskType === 'Luring' ? 'bg-amber-50 text-amber-600 border border-amber-100' : emp.currentTaskType === 'Daring' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'text-slate-300'}`}>
+                        {emp.currentTaskType}
+                      </span>
+                    </td>
+                    <td className="px-8 py-6 text-center">
+                      <span className={`text-[9px] font-black uppercase tracking-widest ${emp.currentTaskCost === '-' ? 'text-slate-300' : 'text-slate-500'}`}>
+                        {emp.currentTaskCost}
+                      </span>
                     </td>
                     <td className="px-8 py-6">
                        <div className="flex flex-col items-center">
