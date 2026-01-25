@@ -101,10 +101,12 @@ const LaporanTugas: React.FC<LaporanTugasProps> = ({ user }) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Fix: Explicitly type the files array as File[] to ensure each 'file' is recognized as a 'File' (which extends 'Blob')
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    Array.from(files).forEach(file => {
+    const filesArray: File[] = Array.from(files);
+    filesArray.forEach(file => {
       if (formLaporan.fotos.length >= 6) return;
       const reader = new FileReader();
       reader.onloadend = () => {

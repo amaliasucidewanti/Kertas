@@ -16,6 +16,9 @@ export interface Pegawai {
   passwordChangeRequired: boolean;
   lastPasswordResetBy?: string;
   lastPasswordResetAt?: string;
+  // Atribut Baru untuk Monitoring
+  jenisTugas?: 'Luring' | 'Daring';
+  sumberBiaya?: 'BPMP' | 'Penyelenggara' | 'Tanpa Biaya';
 }
 
 export interface Penugasan {
@@ -33,16 +36,15 @@ export interface Penugasan {
   statusTugas: 'Draft' | 'Aktif' | 'Selesai' | 'Perlu Perbaikan';
   laporanStatus: 'Sudah Upload' | 'Belum Upload';
   lokasi?: string;
-  // Format Laporan Baru
   latarBelakang?: string;
   maksudTujuan?: string;
   ruangLingkup?: string;
   dasarLaporan?: string;
-  uraianTugas?: string; // Bagian B: Kegiatan
-  hasilKerja?: string;   // Bagian C: Hasil
-  simpulanSaran?: string; // Bagian D: Simpulan
-  penutupLaporan?: string; // Bagian E: Penutup
-  dokumentasiFotos?: string[]; // Minimal 3 photos requirement
+  uraianTugas?: string;
+  hasilKerja?: string;
+  simpulanSaran?: string;
+  penutupLaporan?: string;
+  dokumentasiFotos?: string[];
   penandatangan?: string;
   createdAt: string;
 }

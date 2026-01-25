@@ -5,28 +5,14 @@ const SPREADSHEET_ID = '1iB7Tdda08wD1u5IwiKUEjkfI2JFzw4wjTI_bGRhivVc';
 const LOCAL_STORAGE_KEY = 'si-kertas-local-db-v1';
 
 const SYSTEM_USERS: Pegawai[] = [
-  { id: 'sys-admin', nama: 'Administrator Utama', nip: '000000', jabatan: 'Super Admin', unitKerja: 'Pusat Data', role: Role.SUPER_ADMIN, username: 'Admin', passwordChangeRequired: false },
-  { id: 'sys-umum', nama: 'Admin Subbag Umum', nip: '111111', jabatan: 'Kepala Subbag Umum', unitKerja: 'Subbag Umum', role: Role.ADMIN_TIM, username: 'umum', passwordChangeRequired: false },
-  { id: 'sys-tk1', nama: 'Admin Tim Kerja 1', nip: '222222', jabatan: 'Ketua Tim Kerja 1', unitKerja: 'Tim Kerja 1', role: Role.ADMIN_TIM, username: 'tk1', passwordChangeRequired: false },
+  { id: 'sys-admin', nama: 'Administrator Utama', nip: '000000', jabatan: 'Super Admin', unitKerja: 'Pusat Data', role: Role.SUPER_ADMIN, username: 'Admin', passwordChangeRequired: false, jenisTugas: 'Luring', sumberBiaya: 'BPMP' },
+  { id: 'sys-umum', nama: 'Admin Subbag Umum', nip: '111111', jabatan: 'Kepala Subbag Umum', unitKerja: 'Subbag Umum', role: Role.ADMIN_TIM, username: 'umum', passwordChangeRequired: false, jenisTugas: 'Luring', sumberBiaya: 'BPMP' },
+  { id: 'sys-tk1', nama: 'Admin Tim Kerja 1', nip: '222222', jabatan: 'Ketua Tim Kerja 1', unitKerja: 'Tim Kerja 1', role: Role.ADMIN_TIM, username: 'tk1', passwordChangeRequired: false, jenisTugas: 'Luring', sumberBiaya: 'BPMP' },
 ];
 
 let MOCK_PEGAWAI: Pegawai[] = [];
 let MOCK_PENUGASAN: Penugasan[] = [];
 let MOCK_KEDISIPLINAN: Kedisiplinan[] = [];
-
-const normalizeDate = (dateStr: string) => {
-  if (!dateStr) return '';
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
-  const parts = dateStr.split(/[/-]/);
-  if (parts.length === 3) {
-    if (parts[0].length === 4) {
-      return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
-    } else {
-      return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-    }
-  }
-  return dateStr;
-};
 
 const parseCSV = (csvText: string) => {
   const rows = [];
@@ -113,14 +99,25 @@ export const dataService = {
           unitKerja: row[3] || '-',
           role: (row[4] as Role) || Role.PEGAWAI,
           username: nip,
-          passwordChangeRequired: false
+          passwordChangeRequired: false,
+          jenisTugas: (row[5] as any) || 'Luring',
+          sumberBiaya: (row[6] as any) || 'BPMP'
         };
       });
 
-      const existingNips = new Set(MOCK_PEGAWAI.map(p => p.nip));
       spreadsheetPegawai.forEach(sp => {
-          if (!existingNips.has(sp.nip)) {
+          const existingIdx = MOCK_PEGAWAI.findIndex(p => p.nip === sp.nip);
+          if (existingIdx === -1) {
               MOCK_PEGAWAI.push(sp);
+          } else {
+              // Update metadata but keep custom fields if they exist
+              MOCK_PEGAWAI[existingIdx] = {
+                ...MOCK_PEGAWAI[existingIdx],
+                nama: sp.nama,
+                jabatan: sp.jabatan,
+                unitKerja: sp.unitKerja,
+                role: sp.role
+              };
           }
       });
 
@@ -143,6 +140,13 @@ export const dataService = {
   },
 
   getPegawai: (unitKerja?: string) => unitKerja ? MOCK_PEGAWAI.filter(p => p.unitKerja === unitKerja) : MOCK_PEGAWAI,
+  
+  updatePegawai: (nip: string, data: Partial<Pegawai>) => {
+    MOCK_PEGAWAI = MOCK_PEGAWAI.map(p => p.nip === nip ? { ...p, ...data } : p);
+    persistData();
+    return true;
+  },
+
   getPenugasan: () => MOCK_PENUGASAN,
   getPenugasanById: (id: string) => MOCK_PENUGASAN.find(p => p.id === id),
 
@@ -273,7 +277,9 @@ export const dataService = {
       unitKerja: data.unitKerja || '',
       role: data.role || Role.PEGAWAI,
       username: dataService.standardizeNip(data.nip || ''),
-      passwordChangeRequired: true
+      passwordChangeRequired: true,
+      jenisTugas: data.jenisTugas || 'Luring',
+      sumberBiaya: data.sumberBiaya || 'BPMP'
     };
     MOCK_PEGAWAI.push(newP);
     persistData();

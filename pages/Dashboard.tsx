@@ -12,7 +12,8 @@ import {
   Activity,
   FileText,
   PieChart as PieIcon,
-  CheckCircle2
+  CheckCircle2,
+  Calendar
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 // @ts-ignore
@@ -21,20 +22,26 @@ import { useNavigate } from 'react-router-dom';
 const Dashboard: React.FC<{ user: Pegawai }> = ({ user }) => {
   const navigate = useNavigate();
   const [closedNotifs, setClosedNotifs] = useState<string[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
   
   const currentNip = dataService.standardizeNip(user.nip);
   const unitFilter = user.role === Role.ADMIN_TIM ? user.unitKerja : undefined;
   const employees = dataService.getPegawai(unitFilter);
-  const tasksWithStatus = dataService.getPenugasanWithStatus(unitFilter);
+  const allTasksWithStatus = dataService.getPenugasanWithStatus(unitFilter);
   
-  const reminders = useMemo(() => dataService.getReportReminders(currentNip), [currentNip, tasksWithStatus]);
+  // Filter tugas berdasarkan bulan terpilih untuk Chart & Tabel Monitoring
+  const filteredTasks = useMemo(() => {
+    return allTasksWithStatus.filter(t => t.tanggalMulai.includes(`-${selectedMonth}-`));
+  }, [allTasksWithStatus, selectedMonth]);
+
+  const reminders = useMemo(() => dataService.getReportReminders(currentNip), [currentNip, allTasksWithStatus]);
   const userDiscipline = dataService.getKedisiplinan(currentNip);
   const userIdleDays = dataService.getIdleDays(currentNip);
   const isUserBertugas = dataService.isBertugas(currentNip);
 
   const activePersonnel = useMemo(() => {
     const today = dataService.getTodayWIT();
-    const activeTasks = tasksWithStatus.filter(t => today >= t.tanggalMulai && today <= t.tanggalSelesai);
+    const activeTasks = allTasksWithStatus.filter(t => today >= t.tanggalMulai && today <= t.tanggalSelesai);
     const uniqueNips = Array.from(new Set(activeTasks.map(t => t.nip)));
     return uniqueNips.map(nip => {
       const personTasks = activeTasks.filter(t => t.nip === nip);
@@ -47,18 +54,18 @@ const Dashboard: React.FC<{ user: Pegawai }> = ({ user }) => {
         lastLocation: personTasks[personTasks.length - 1].lokasi
       };
     });
-  }, [tasksWithStatus, employees]);
+  }, [allTasksWithStatus, employees]);
 
-  const globalTasksOnDuty = tasksWithStatus.filter(t => t.calculatedStatus === 'Bertugas' || t.calculatedStatus === 'Akan Selesai');
+  const globalTasksOnDuty = allTasksWithStatus.filter(t => t.calculatedStatus === 'Bertugas' || t.calculatedStatus === 'Akan Selesai');
 
   const reportStats = useMemo(() => {
-    const reported = tasksWithStatus.filter(t => t.laporanStatus === 'Sudah Upload').length;
-    const unreported = tasksWithStatus.length - reported;
+    const reported = filteredTasks.filter(t => t.laporanStatus === 'Sudah Upload').length;
+    const unreported = filteredTasks.length - reported;
     return [
-      { name: 'Sudah Dilaporkan', value: reported, color: '#10b981' }, // emerald-500
-      { name: 'Belum Dilaporkan', value: unreported, color: '#f43f5e' }  // rose-500
+      { name: 'Sudah Dilaporkan', value: reported, color: '#10b981' }, 
+      { name: 'Belum Dilaporkan', value: unreported, color: '#f43f5e' }  
     ];
-  }, [tasksWithStatus]);
+  }, [filteredTasks]);
 
   const stats = useMemo(() => {
     const isPegawai = user.role === Role.PEGAWAI;
@@ -74,7 +81,7 @@ const Dashboard: React.FC<{ user: Pegawai }> = ({ user }) => {
 
     const active = employees.filter(e => dataService.isBertugas(e.nip)).length;
     const idle = employees.length - active;
-    const stAktifCount = tasksWithStatus.filter(t => t.calculatedStatus !== 'Selesai').length;
+    const stAktifCount = allTasksWithStatus.filter(t => t.calculatedStatus !== 'Selesai').length;
     const averageDiscipline = dataService.getAverageDiscipline(unitFilter);
 
     return {
@@ -83,7 +90,7 @@ const Dashboard: React.FC<{ user: Pegawai }> = ({ user }) => {
       card3: stAktifCount,
       card4: `${averageDiscipline}%`,
     };
-  }, [employees, tasksWithStatus, user, reminders, userIdleDays, isUserBertugas, userDiscipline, unitFilter]);
+  }, [employees, allTasksWithStatus, user, reminders, userIdleDays, isUserBertugas, userDiscipline, unitFilter]);
 
   const formatDateShort = (start: string, end: string) => {
     const s = new Date(start);
@@ -141,83 +148,33 @@ const Dashboard: React.FC<{ user: Pegawai }> = ({ user }) => {
          </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-         <div className="lg:col-span-1 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-            <div className="p-8 border-b bg-slate-50/50 flex justify-between items-center">
-               <h3 className="text-sm font-black text-slate-800 tracking-tighter uppercase italic flex items-center gap-2">
-                  <Activity size={18} className="text-rose-500" /> Pelaksana Tugas Aktif
-               </h3>
-               <span className="bg-rose-100 text-rose-600 px-3 py-1 rounded-full text-[9px] font-black uppercase">{activePersonnel.length} Orang</span>
-            </div>
-            <div className="flex-1 overflow-y-auto max-h-[400px] p-4 space-y-3 custom-scrollbar">
-               {activePersonnel.length > 0 ? activePersonnel.map((p, i) => (
-                 <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-transparent hover:border-indigo-100 hover:bg-white transition-all group">
-                    <div>
-                       <p className="text-xs font-black text-slate-800 leading-none group-hover:text-indigo-600">{p.nama}</p>
-                       <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">{p.unit} • {p.taskCount} ST</p>
-                    </div>
-                    <div className="text-right">
-                       <MapPin size={14} className="text-slate-300 ml-auto mb-1" />
-                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest truncate max-w-[80px]">{p.lastLocation}</p>
-                    </div>
-                 </div>
-               )) : (
-                 <div className="py-20 text-center opacity-30 italic text-[10px] font-bold uppercase tracking-widest">Tidak ada personil bertugas</div>
-               )}
-            </div>
-            <div className="p-4 bg-slate-50 border-t text-center">
-               <button onClick={() => navigate('/kalender')} className="text-[9px] font-black text-indigo-600 uppercase tracking-widest hover:underline">Lihat Kalender Lengkap</button>
-            </div>
-         </div>
-
-         <div className="lg:col-span-2 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-            <div className="p-8 border-b flex justify-between items-center">
-               <h3 className="text-sm font-black text-slate-800 tracking-tighter flex items-center gap-3 uppercase italic">
-                  <Briefcase className="text-indigo-600" size={18} /> 
-                  Agenda Surat Tugas Terkini
-               </h3>
-               <button onClick={() => navigate('/laporan')} className="text-indigo-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all">Semua ST <ArrowRight size={14}/></button>
-            </div>
-            <div className="overflow-x-auto">
-               <table className="w-full text-left">
-                  <thead>
-                     <tr className="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] border-b">
-                        <th className="px-8 py-4">Nomor & Kegiatan</th>
-                        <th className="px-8 py-4">Status</th>
-                        <th className="px-8 py-4 text-right">Periode</th>
-                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                     {globalTasksOnDuty.slice(0, 6).map((t) => (
-                        <tr key={t.id} className="group hover:bg-slate-50 transition-colors">
-                           <td className="px-8 py-5">
-                              <p className="text-[9px] font-black text-indigo-400 leading-none mb-1 uppercase tracking-widest">{t.nomorSurat}</p>
-                              <p className="text-xs font-bold text-slate-700 truncate max-w-[200px]">{t.namaKegiatan}</p>
-                           </td>
-                           <td className="px-8 py-5">
-                              <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest bg-${t.calculatedColor}-50 text-${t.calculatedColor}-600 border border-${t.calculatedColor}-100`}>
-                                 {t.calculatedStatus}
-                              </span>
-                           </td>
-                           <td className="px-8 py-5 text-right font-black text-[9px] text-slate-400 uppercase">
-                              {formatDateShort(t.tanggalMulai, t.tanggalSelesai)}
-                           </td>
-                        </tr>
-                     ))}
-                  </tbody>
-               </table>
-            </div>
-         </div>
+      {/* FILTER BAR DASHBOARD */}
+      <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-wrap items-center gap-6">
+        <div className="flex items-center gap-3">
+          <Calendar size={20} className="text-indigo-600" />
+          <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Periode Analisis:</h3>
+        </div>
+        <select 
+          value={selectedMonth} 
+          onChange={(e) => setSelectedMonth(e.target.value)}
+          className="bg-slate-50 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-200 focus:border-indigo-500 outline-none"
+        >
+          {["01","02","03","04","05","06","07","08","09","10","11","12"].map(m => (
+            <option key={m} value={m}>{new Date(2026, parseInt(m)-1).toLocaleString('id-ID', {month: 'long'})}</option>
+          ))}
+        </select>
+        <div className="ml-auto text-[9px] font-bold text-slate-400 italic">Data terhubung otomatis dengan Master Pegawai</div>
       </div>
 
       {/* NEW SECTION: MONITORING PELAKSANAAN TUGAS */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Monitoring Table */}
-        <div className="lg:col-span-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+        <div className="lg:col-span-8 bg-white rounded-[3.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
           <div className="p-8 border-b bg-slate-50/50 flex justify-between items-center">
             <h3 className="text-sm font-black text-slate-800 tracking-tighter uppercase italic flex items-center gap-2">
               <FileText size={18} className="text-indigo-600" /> Tabel Monitoring Pelaksanaan Tugas
             </h3>
+            <span className="text-[9px] font-black bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full uppercase tracking-widest">{filteredTasks.length} Agenda</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
@@ -230,46 +187,58 @@ const Dashboard: React.FC<{ user: Pegawai }> = ({ user }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 text-sm">
-                {tasksWithStatus.slice(0, 8).map((t) => (
-                  <tr key={t.id} className="group hover:bg-slate-50 transition-colors">
-                    <td className="px-8 py-5">
-                      <p className="font-black text-slate-800">{t.namaPegawai}</p>
-                      <p className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter italic truncate max-w-[150px]">{t.namaKegiatan}</p>
-                    </td>
-                    <td className="px-8 py-5">
-                      <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${t.jenisPenugasan === 'Luring' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
-                        {t.jenisPenugasan}
-                      </span>
-                    </td>
-                    <td className="px-8 py-5">
-                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t.sumberBiaya}</span>
-                    </td>
-                    <td className="px-8 py-5 text-right">
-                      <span className={`inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest ${t.laporanStatus === 'Sudah Upload' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {t.laporanStatus === 'Sudah Upload' ? <CheckCircle2 size={10} /> : <AlertCircle size={10} />}
-                        {t.laporanStatus === 'Sudah Upload' ? 'Sudah Dilaporkan' : 'Belum Dilaporkan'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {tasksWithStatus.length === 0 && (
+                {filteredTasks.length > 0 ? filteredTasks.slice(0, 10).map((t) => {
+                  // Sinkronisasi: Ambil data preferensi dari Master Pegawai
+                  const emp = employees.find(e => dataService.standardizeNip(e.nip) === dataService.standardizeNip(t.nip));
+                  return (
+                    <tr key={t.id} className="group hover:bg-slate-50 transition-colors">
+                      <td className="px-8 py-5">
+                        <p className="font-black text-slate-800">{t.namaPegawai}</p>
+                        <p className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter italic truncate max-w-[200px]">{t.namaKegiatan}</p>
+                      </td>
+                      <td className="px-8 py-5">
+                        <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                          (emp?.jenisTugas || t.jenisPenugasan) === 'Luring' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-blue-50 text-blue-600 border border-blue-100'
+                        }`}>
+                          {emp?.jenisTugas || t.jenisPenugasan}
+                        </span>
+                      </td>
+                      <td className="px-8 py-5">
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                          {emp?.sumberBiaya || t.sumberBiaya || 'Tanpa Biaya'}
+                        </span>
+                      </td>
+                      <td className="px-8 py-5 text-right">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${t.laporanStatus === 'Sudah Upload' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
+                          {t.laporanStatus === 'Sudah Upload' ? <CheckCircle2 size={10} /> : <AlertCircle size={10} />}
+                          {t.laporanStatus === 'Sudah Upload' ? 'Sudah Dilaporkan' : 'Belum Dilaporkan'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                }) : (
                   <tr>
-                    <td colSpan={4} className="px-8 py-20 text-center opacity-30 italic text-[10px] font-bold uppercase tracking-widest">Belum ada penugasan terdaftar</td>
+                    <td colSpan={4} className="px-8 py-32 text-center opacity-30">
+                      <div className="flex flex-col items-center gap-4">
+                        <FileText size={48} />
+                        <p className="text-[10px] font-black uppercase tracking-widest">Belum ada agenda penugasan pada bulan ini</p>
+                      </div>
+                    </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
           <div className="p-4 bg-slate-50 border-t text-center">
-             <button onClick={() => navigate('/laporan')} className="text-[9px] font-black text-indigo-600 uppercase tracking-widest hover:underline">Kelola Seluruh Laporan</button>
+             <button onClick={() => navigate('/laporan')} className="text-[9px] font-black text-indigo-600 uppercase tracking-widest hover:underline">Lihat Seluruh Arsip Laporan</button>
           </div>
         </div>
 
         {/* Report Chart */}
-        <div className="lg:col-span-4 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+        <div className="lg:col-span-4 bg-white rounded-[3.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
           <div className="p-8 border-b bg-slate-50/50 flex justify-between items-center">
             <h3 className="text-sm font-black text-slate-800 tracking-tighter uppercase italic flex items-center gap-2">
-              <PieIcon size={18} className="text-indigo-600" /> Visualisasi Status Laporan
+              <PieIcon size={18} className="text-indigo-600" /> Analisis Kepatuhan
             </h3>
           </div>
           <div className="flex-1 p-8 flex flex-col items-center justify-center">
@@ -307,14 +276,41 @@ const Dashboard: React.FC<{ user: Pegawai }> = ({ user }) => {
                 <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.name}</p>
                   <p className="text-2xl font-black text-slate-800 tracking-tighter">
-                    {tasksWithStatus.length > 0 ? Math.round((stat.value / tasksWithStatus.length) * 100) : 0}%
+                    {filteredTasks.length > 0 ? Math.round((stat.value / filteredTasks.length) * 100) : 0}%
                   </p>
-                  <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase italic tracking-tighter">{stat.value} Dokumen</p>
+                  <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase italic tracking-tighter">{stat.value} Penugasan</p>
                 </div>
               ))}
             </div>
           </div>
         </div>
+      </div>
+      
+      {/* Active Personnel Mini Strip */}
+      <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+          <div className="p-8 border-b bg-slate-50/50 flex justify-between items-center">
+             <h3 className="text-sm font-black text-slate-800 tracking-tighter uppercase italic flex items-center gap-2">
+                <Activity size={18} className="text-rose-500" /> Real-Time Personnel On Duty
+             </h3>
+             <span className="bg-rose-100 text-rose-600 px-3 py-1 rounded-full text-[9px] font-black uppercase">{activePersonnel.length} Orang</span>
+          </div>
+          <div className="flex flex-wrap p-6 gap-4">
+             {activePersonnel.length > 0 ? activePersonnel.map((p, i) => (
+               <div key={i} className="flex items-center gap-4 p-4 bg-slate-50 rounded-3xl border border-slate-100 hover:border-indigo-100 transition-all">
+                  <div className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-xs">
+                    {p.nama.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-black text-slate-800 leading-none">{p.nama}</p>
+                    <div className="flex items-center gap-2 mt-1 text-[8px] font-bold text-slate-400 uppercase italic">
+                      <MapPin size={10} /> {p.lastLocation}
+                    </div>
+                  </div>
+               </div>
+             )) : (
+               <div className="w-full py-10 text-center text-[10px] font-black text-slate-300 uppercase italic tracking-[0.2em]">Semua personel sedang standby / bebas tugas</div>
+             )}
+          </div>
       </div>
     </div>
   );

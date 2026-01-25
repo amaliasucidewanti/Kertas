@@ -2,11 +2,12 @@
 import React, { useState, useMemo } from 'react';
 import { Pegawai, Role, Penugasan } from '../types';
 import { dataService } from '../services/dataService';
-import { Search, Eye, Calendar, FileText, Activity } from 'lucide-react';
+import { Search, Eye, Calendar, FileText, Activity, Edit, X, Save, ShieldCheck } from 'lucide-react';
 
 const EmployeeList: React.FC<{ user: Pegawai }> = ({ user }) => {
   const [search, setSearch] = useState('');
   const [unitFilter, setUnitFilter] = useState('Semua');
+  const [editingEmployee, setEditingEmployee] = useState<Pegawai | null>(null);
 
   const employees = dataService.getPegawai();
   const tasks = dataService.getPenugasan();
@@ -21,22 +22,26 @@ const EmployeeList: React.FC<{ user: Pegawai }> = ({ user }) => {
     }).map(e => {
       const employeeTasks = tasks.filter(t => dataService.standardizeNip(t.nip) === dataService.standardizeNip(e.nip));
       const activeST = employeeTasks.filter(t => t.laporanStatus === 'Belum Upload').length;
-      
-      // Find active/current task for extra attributes
-      const currentTask = employeeTasks.find(t => today >= t.tanggalMulai && today <= t.tanggalSelesai);
-      
-      return { 
-        ...e, 
-        totalST: employeeTasks.length, 
-        activeST,
-        currentTaskType: currentTask?.jenisPenugasan || '-',
-        currentTaskCost: currentTask?.sumberBiaya || '-'
-      };
+      return { ...e, totalST: employeeTasks.length, activeST };
     });
   }, [employees, tasks, search, unitFilter]);
 
+  const handleUpdatePreference = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingEmployee) {
+      dataService.updatePegawai(editingEmployee.nip, {
+        jenisTugas: editingEmployee.jenisTugas,
+        sumberBiaya: editingEmployee.sumberBiaya
+      });
+      setEditingEmployee(null);
+      alert('Preferensi penugasan pegawai berhasil diperbarui!');
+    }
+  };
+
+  const isAdmin = user.role === Role.SUPER_ADMIN || user.role === Role.ADMIN_TIM;
+
   return (
-    <div className="space-y-6 animate-fade-in max-w-7xl mx-auto">
+    <div className="space-y-6 animate-fade-in max-w-7xl mx-auto pb-32">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
            <h1 className="text-2xl font-black text-slate-800 tracking-tighter uppercase italic">Master Data Pegawai</h1>
@@ -63,7 +68,7 @@ const EmployeeList: React.FC<{ user: Pegawai }> = ({ user }) => {
         </div>
       </div>
 
-      <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+      <div className="bg-white rounded-[3.5rem] shadow-sm border border-slate-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
@@ -92,13 +97,15 @@ const EmployeeList: React.FC<{ user: Pegawai }> = ({ user }) => {
                        </span>
                     </td>
                     <td className="px-8 py-6 text-center">
-                      <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${emp.currentTaskType === 'Luring' ? 'bg-amber-50 text-amber-600 border border-amber-100' : emp.currentTaskType === 'Daring' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'text-slate-300'}`}>
-                        {emp.currentTaskType}
+                      <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
+                        emp.jenisTugas === 'Luring' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-blue-50 text-blue-600 border-blue-100'
+                      }`}>
+                        {emp.jenisTugas || 'Luring'}
                       </span>
                     </td>
                     <td className="px-8 py-6 text-center">
-                      <span className={`text-[9px] font-black uppercase tracking-widest ${emp.currentTaskCost === '-' ? 'text-slate-300' : 'text-slate-500'}`}>
-                        {emp.currentTaskCost}
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                        {emp.sumberBiaya || 'BPMP'}
                       </span>
                     </td>
                     <td className="px-8 py-6">
@@ -122,11 +129,17 @@ const EmployeeList: React.FC<{ user: Pegawai }> = ({ user }) => {
                     </td>
                     <td className="px-8 py-6">
                       <div className="flex justify-end gap-2">
-                        <button className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-white hover:shadow-lg rounded-2xl transition-all border border-transparent hover:border-slate-100" title="Detail Kinerja">
+                        {isAdmin && (
+                          <button 
+                            onClick={() => setEditingEmployee(emp)}
+                            className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-white hover:shadow-lg rounded-2xl transition-all border border-transparent hover:border-slate-100" 
+                            title="Edit Preferensi Tugas"
+                          >
+                            <Edit size={18} />
+                          </button>
+                        )}
+                        <button className="p-3 text-slate-400 hover:text-emerald-600 hover:bg-white hover:shadow-lg rounded-2xl transition-all border border-transparent hover:border-slate-100" title="Detail Kinerja">
                           <Eye size={18} />
-                        </button>
-                        <button className="p-3 text-slate-400 hover:text-emerald-600 hover:bg-white hover:shadow-lg rounded-2xl transition-all border border-transparent hover:border-slate-100" title="Lihat Jadwal">
-                          <Calendar size={18} />
                         </button>
                       </div>
                     </td>
@@ -137,6 +150,57 @@ const EmployeeList: React.FC<{ user: Pegawai }> = ({ user }) => {
           </table>
         </div>
       </div>
+
+      {/* MODAL EDIT PREFERENSI TUGAS */}
+      {editingEmployee && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-fade-in">
+           <div className="bg-white w-full max-w-lg rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col">
+              <div className="p-10 bg-indigo-900 text-white flex justify-between items-center">
+                 <div>
+                    <h3 className="text-xl font-black uppercase tracking-tighter italic">Edit Preferensi Tugas</h3>
+                    <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-1">{editingEmployee.nama}</p>
+                 </div>
+                 <button onClick={() => setEditingEmployee(null)} className="p-3 hover:bg-white/10 rounded-full transition-all"><X size={24}/></button>
+              </div>
+
+              <form onSubmit={handleUpdatePreference} className="p-10 space-y-8">
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Jenis Tugas Default</label>
+                    <div className="grid grid-cols-2 gap-4">
+                       {['Luring', 'Daring'].map(val => (
+                          <button 
+                            key={val} type="button" 
+                            onClick={() => setEditingEmployee({...editingEmployee, jenisTugas: val as any})}
+                            className={`py-4 rounded-2xl border-2 text-[10px] font-black uppercase tracking-widest transition-all ${editingEmployee.jenisTugas === val ? 'bg-indigo-50 border-indigo-600 text-indigo-600 shadow-lg' : 'bg-slate-50 border-transparent text-slate-400'}`}
+                          >
+                            {val}
+                          </button>
+                       ))}
+                    </div>
+                 </div>
+
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Sumber Biaya Default</label>
+                    <select 
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                      value={editingEmployee.sumberBiaya}
+                      onChange={e => setEditingEmployee({...editingEmployee, sumberBiaya: e.target.value as any})}
+                    >
+                       <option value="BPMP">BPMP (DIPA Internal)</option>
+                       <option value="Penyelenggara">Penyelenggara (Eksternal)</option>
+                       <option value="Tanpa Biaya">Tanpa Biaya</option>
+                    </select>
+                 </div>
+
+                 <div className="pt-6 border-t border-slate-100 flex justify-end">
+                    <button type="submit" className="bg-indigo-600 text-white px-10 py-4 rounded-3xl text-[10px] font-black uppercase tracking-widest shadow-2xl flex items-center gap-3">
+                       <Save size={18} /> Simpan Perubahan
+                    </button>
+                 </div>
+              </form>
+           </div>
+        </div>
+      )}
     </div>
   );
 };
