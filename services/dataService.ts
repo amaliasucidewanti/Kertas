@@ -149,7 +149,7 @@ export const dataService = {
   getPenugasan: () => MOCK_PENUGASAN,
   getPenugasanById: (id: string) => MOCK_PENUGASAN.find(p => p.id === id),
 
-  // Agregasi Data Penugasan per Pegawai
+  // Agregasi Data Penugasan per Pegawai - Kumulatif Berbasis ST
   getEmployeeAssignmentSummary: (nip: string) => {
     const cNip = dataService.standardizeNip(nip);
     const employeeTasks = MOCK_PENUGASAN.filter(t => dataService.standardizeNip(t.nip) === cNip);
@@ -163,7 +163,7 @@ export const dataService = {
 
       if (t.sumberBiaya === 'BPMP') costCounts.bpmp++;
       else if (t.sumberBiaya === 'Penyelenggara') costCounts.penyelenggara++;
-      else costCounts.tanpaBiaya++;
+      else if (t.sumberBiaya === 'Tanpa Biaya') costCounts.tanpaBiaya++;
     });
 
     return { typeCounts, costCounts, total: employeeTasks.length };

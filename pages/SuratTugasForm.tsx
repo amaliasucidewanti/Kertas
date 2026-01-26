@@ -20,8 +20,8 @@ const SuratTugasForm: React.FC = () => {
     lokasi: '',
     tanggalMulai: dataService.getTodayWIT(),
     tanggalSelesai: dataService.getTodayWIT(),
-    jenisPenugasan: 'Luring' as 'Luring' | 'Daring',
-    sumberBiaya: 'BPMP' as 'BPMP' | 'Penyelenggara',
+    jenisPenugasan: (selectedEmp?.jenisTugas || 'Luring') as 'Luring' | 'Daring',
+    sumberBiaya: (selectedEmp?.sumberBiaya || 'BPMP') as 'BPMP' | 'Penyelenggara' | 'Tanpa Biaya',
     penandatangan: 'Santoso, S.Pd., M.Si.',
     biaya: 0,
   });
@@ -153,7 +153,7 @@ const SuratTugasForm: React.FC = () => {
         </div>
         <div>
           <h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase italic">Penerbitan ST (Individu)</h1>
-          <p className="text-slate-500 font-medium">Santoso, S.Pd., M.Si. (Kepala BPMP Maluku Utara)</p>
+          <p className="text-slate-500 font-medium italic">Data ini akan menjadi sumber utama tabel monitoring & statistik pegawai</p>
         </div>
       </div>
 
@@ -180,23 +180,33 @@ const SuratTugasForm: React.FC = () => {
             <div className="space-y-6">
                <div className="flex items-center gap-3">
                   <Landmark size={18} className="text-amber-500"/>
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Detail Surat</h3>
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Parameter Penugasan</h3>
                </div>
                <div className="space-y-4">
                   <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Jenis Penugasan</label>
+                    <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Jenis Tugas (Mandatory) *</label>
                     <select 
+                      required
                       value={formData.jenisPenugasan} 
                       onChange={e => setFormData({...formData, jenisPenugasan: e.target.value as any})}
-                      className="w-full bg-slate-50 px-4 py-3 rounded-xl text-sm font-black text-indigo-700 outline-none border border-slate-200"
+                      className="w-full bg-slate-50 px-4 py-3 rounded-xl text-sm font-black text-indigo-700 outline-none border-2 border-indigo-100 focus:border-indigo-500 transition-all"
                     >
-                      <option value="Luring">Luring</option>
-                      <option value="Daring">Daring</option>
+                      <option value="Luring">Luring (Luar Kantor)</option>
+                      <option value="Daring">Daring (Dalam Jaringan)</option>
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Penandatangan</label>
-                    <input readOnly value={formData.penandatangan} className="w-full bg-slate-100 px-4 py-3 rounded-xl text-sm font-black text-slate-500" />
+                    <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Sumber Biaya ST (Mandatory) *</label>
+                    <select 
+                      required
+                      value={formData.sumberBiaya} 
+                      onChange={e => setFormData({...formData, sumberBiaya: e.target.value as any})}
+                      className="w-full bg-slate-50 px-4 py-3 rounded-xl text-sm font-black text-amber-700 outline-none border-2 border-amber-100 focus:border-amber-500 transition-all"
+                    >
+                      <option value="BPMP">DIPA BPMP (Internal)</option>
+                      <option value="Penyelenggara">Penyelenggara (Eksternal)</option>
+                      <option value="Tanpa Biaya">Tanpa Biaya (Mandiri/Zonasi)</option>
+                    </select>
                   </div>
                </div>
             </div>
@@ -206,39 +216,46 @@ const SuratTugasForm: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-2">
                 <label className="block text-[11px] font-black text-slate-600 uppercase tracking-widest ml-1">Nomor Surat *</label>
-                <input required type="text" value={formData.nomorSurat} onChange={e => setFormData({...formData, nomorSurat: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none" placeholder="e.g. 1234/C7.4/ST/2026" />
+                <input required type="text" value={formData.nomorSurat} onChange={e => setFormData({...formData, nomorSurat: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="e.g. 1234/C7.4/ST/2026" />
               </div>
               <div className="space-y-2">
-                <label className="block text-[11px] font-black text-slate-600 uppercase tracking-widest ml-1">Lokasi *</label>
-                <input required type="text" value={formData.lokasi} onChange={e => setFormData({...formData, lokasi: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none" placeholder="e.g. Ternate" />
+                <label className="block text-[11px] font-black text-slate-600 uppercase tracking-widest ml-1">Lokasi Kegiatan *</label>
+                <input required type="text" value={formData.lokasi} onChange={e => setFormData({...formData, lokasi: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="e.g. Kota Ternate" />
               </div>
             </div>
 
             <div className="space-y-2">
               <label className="block text-[11px] font-black text-slate-600 uppercase tracking-widest ml-1">Nama Kegiatan *</label>
-              <input required type="text" value={formData.namaKegiatan} onChange={e => setFormData({...formData, namaKegiatan: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none" placeholder="Workshop / Rapat" />
+              <input required type="text" value={formData.namaKegiatan} onChange={e => setFormData({...formData, namaKegiatan: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none shadow-inner" placeholder="Sebutkan Judul Kegiatan Secara Jelas" />
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-2 gap-8">
                <div className="space-y-2">
                   <label className="block text-[11px] font-black text-slate-600 uppercase tracking-widest ml-1">Tanggal Mulai *</label>
-                  <input required type="date" value={formData.tanggalMulai} onChange={e => setFormData({...formData, tanggalMulai: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-sm font-black outline-none" />
+                  <input required type="date" value={formData.tanggalMulai} onChange={e => setFormData({...formData, tanggalMulai: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-sm font-black outline-none shadow-inner" />
                </div>
                <div className="space-y-2">
                   <label className="block text-[11px] font-black text-slate-600 uppercase tracking-widest ml-1">Tanggal Selesai *</label>
-                  <input required type="date" value={formData.tanggalSelesai} onChange={e => setFormData({...formData, tanggalSelesai: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-sm font-black outline-none" />
+                  <input required type="date" value={formData.tanggalSelesai} onChange={e => setFormData({...formData, tanggalSelesai: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-sm font-black outline-none shadow-inner" />
                </div>
             </div>
           </div>
 
           <div className="pt-10 flex justify-end">
-            <button type="submit" className="bg-indigo-600 text-white font-black py-5 px-12 rounded-[2rem] shadow-2xl flex items-center gap-4 hover:bg-indigo-700 transition-all">
-              <Eye size={22} />
-              <span className="uppercase tracking-[0.2em] text-[10px]">Pratinjau Surat</span>
+            <button type="submit" className="bg-indigo-600 text-white font-black py-5 px-12 rounded-[2rem] shadow-2xl flex items-center gap-4 hover:bg-indigo-700 transition-all group">
+              <Eye size={22} className="group-hover:scale-110 transition-transform" />
+              <span className="uppercase tracking-[0.2em] text-[10px]">Pratinjau & Validasi Data</span>
             </button>
           </div>
         </form>
       </div>
+      
+      {conflictError && (
+        <div className="mt-8 p-6 bg-rose-50 border-2 border-rose-200 rounded-[2rem] flex items-center gap-4 text-rose-600 animate-bounce">
+           <AlertTriangle size={24} />
+           <p className="text-sm font-black uppercase tracking-widest">{conflictError}</p>
+        </div>
+      )}
     </div>
   );
 };

@@ -31,7 +31,7 @@ export interface Penugasan {
   tanggalMulai: string;
   tanggalSelesai: string;
   jenisPenugasan: 'Luring' | 'Daring';
-  sumberBiaya: 'BPMP' | 'Penyelenggara' | 'Lainnya';
+  sumberBiaya: 'BPMP' | 'Penyelenggara' | 'Tanpa Biaya';
   biaya: number;
   statusTugas: 'Draft' | 'Aktif' | 'Selesai' | 'Perlu Perbaikan';
   laporanStatus: 'Sudah Upload' | 'Belum Upload';
