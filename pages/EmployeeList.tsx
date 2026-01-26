@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { Pegawai, Role, Penugasan } from '../types';
 import { dataService } from '../services/dataService';
-import { Search, Eye, Calendar, FileText, Activity, Edit, X, Save, ShieldCheck } from 'lucide-react';
+import { Search, Eye, Calendar, FileText, Activity, Edit, X, Save, ShieldCheck, TrendingUp, Info } from 'lucide-react';
 
 const EmployeeList: React.FC<{ user: Pegawai }> = ({ user }) => {
   const [search, setSearch] = useState('');
@@ -20,9 +20,10 @@ const EmployeeList: React.FC<{ user: Pegawai }> = ({ user }) => {
       const matchesUnit = unitFilter === 'Semua' || e.unitKerja === unitFilter;
       return matchesSearch && matchesUnit;
     }).map(e => {
-      const employeeTasks = tasks.filter(t => dataService.standardizeNip(t.nip) === dataService.standardizeNip(e.nip));
-      const activeST = employeeTasks.filter(t => t.laporanStatus === 'Belum Upload').length;
-      return { ...e, totalST: employeeTasks.length, activeST };
+      const summary = dataService.getEmployeeAssignmentSummary(e.nip);
+      const isBertugas = dataService.isBertugas(e.nip);
+      const activeST = tasks.filter(t => dataService.standardizeNip(t.nip) === dataService.standardizeNip(e.nip) && t.laporanStatus === 'Belum Upload').length;
+      return { ...e, ...summary, activeST, isBertugas };
     });
   }, [employees, tasks, search, unitFilter]);
 
@@ -45,7 +46,7 @@ const EmployeeList: React.FC<{ user: Pegawai }> = ({ user }) => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
            <h1 className="text-2xl font-black text-slate-800 tracking-tighter uppercase italic">Master Data Pegawai</h1>
-           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 italic">Menyinkronkan {employees.length} Profil dengan Database Penugasan</p>
+           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 italic">Agregasi Frekuensi Kinerja dari {tasks.length} Surat Tugas</p>
         </div>
         <div className="flex flex-wrap gap-2">
            <div className="relative">
@@ -75,18 +76,16 @@ const EmployeeList: React.FC<{ user: Pegawai }> = ({ user }) => {
               <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                 <th className="px-8 py-6">Profil Pegawai</th>
                 <th className="px-8 py-6">Unit Kerja</th>
-                <th className="px-8 py-6 text-center">Jenis Tugas</th>
-                <th className="px-8 py-6 text-center">Biaya ST</th>
-                <th className="px-8 py-6 text-center">Rekap ST</th>
-                <th className="px-8 py-6">Status Kerja</th>
+                <th className="px-8 py-6">Ringkasan Jenis Tugas</th>
+                <th className="px-8 py-6">Distribusi Biaya ST</th>
+                <th className="px-8 py-6 text-center">Status Kerja</th>
                 <th className="px-8 py-6 text-right">Opsi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 text-sm">
               {filtered.map(emp => {
-                const isBertugas = dataService.isBertugas(emp.nip);
                 return (
-                  <tr key={emp.id} className="hover:bg-indigo-50/20 transition-colors group">
+                  <tr key={emp.id} className="hover:bg-indigo-50/10 transition-colors group">
                     <td className="px-8 py-6">
                       <p className="font-black text-slate-800 group-hover:text-indigo-600 transition-colors">{emp.nama}</p>
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-1">NIP: {emp.nip}</p>
@@ -96,36 +95,44 @@ const EmployeeList: React.FC<{ user: Pegawai }> = ({ user }) => {
                          {emp.unitKerja}
                        </span>
                     </td>
-                    <td className="px-8 py-6 text-center">
-                      <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
-                        emp.jenisTugas === 'Luring' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-blue-50 text-blue-600 border-blue-100'
-                      }`}>
-                        {emp.jenisTugas || 'Luring'}
-                      </span>
-                    </td>
-                    <td className="px-8 py-6 text-center">
-                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                        {emp.sumberBiaya || 'BPMP'}
-                      </span>
+                    <td className="px-8 py-6">
+                      <div className="flex flex-col gap-1.5">
+                         <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                            <span className="text-[10px] font-black text-slate-600 uppercase">Luring: {emp.typeCounts.luring} Kali</span>
+                         </div>
+                         <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+                            <span className="text-[10px] font-black text-slate-600 uppercase">Daring: {emp.typeCounts.daring} Kali</span>
+                         </div>
+                      </div>
                     </td>
                     <td className="px-8 py-6">
-                       <div className="flex flex-col items-center">
-                          <div className="flex gap-1">
-                             <span className="text-sm font-black text-slate-800">{emp.totalST}</span>
-                             <FileText size={14} className="text-slate-300" />
+                       <div className="space-y-1">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter flex justify-between">
+                            <span>BPMP: {emp.costCounts.bpmp}x</span>
+                            <span>Penyelenggara: {emp.costCounts.penyelenggara}x</span>
+                          </p>
+                          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                             <div className="h-full bg-indigo-500" style={{ width: `${(emp.costCounts.bpmp / (emp.total || 1)) * 100}%` }}></div>
+                             <div className="h-full bg-emerald-500" style={{ width: `${(emp.costCounts.penyelenggara / (emp.total || 1)) * 100}%` }}></div>
                           </div>
-                          {emp.activeST > 0 && (
-                             <span className="text-[8px] font-black text-rose-500 uppercase tracking-tighter mt-1">{emp.activeST} ST Belum Lapor</span>
-                          )}
                        </div>
                     </td>
                     <td className="px-8 py-6">
-                      <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest ${
-                        isBertugas ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'bg-slate-50 text-slate-400 border border-slate-100'
-                      }`}>
-                        {isBertugas && <Activity size={10} className="animate-pulse" />}
-                        {isBertugas ? 'Sedang Bertugas' : 'Tersedia'}
-                      </span>
+                      <div className="flex flex-col items-center gap-2">
+                        <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest ${
+                          emp.isBertugas ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-slate-50 text-slate-400 border border-slate-100'
+                        }`}>
+                          {emp.isBertugas && <Activity size={10} className="animate-pulse" />}
+                          {emp.isBertugas ? 'Sedang Bertugas' : 'Tersedia'}
+                        </span>
+                        {emp.activeST > 0 && (
+                          <span className="text-[8px] font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-100 uppercase tracking-tighter">
+                            {emp.activeST} ST Belum Lapor
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-8 py-6">
                       <div className="flex justify-end gap-2">
@@ -157,13 +164,20 @@ const EmployeeList: React.FC<{ user: Pegawai }> = ({ user }) => {
            <div className="bg-white w-full max-w-lg rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col">
               <div className="p-10 bg-indigo-900 text-white flex justify-between items-center">
                  <div>
-                    <h3 className="text-xl font-black uppercase tracking-tighter italic">Edit Preferensi Tugas</h3>
+                    <h3 className="text-xl font-black uppercase tracking-tighter italic">Edit Profil Pegawai</h3>
                     <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-1">{editingEmployee.nama}</p>
                  </div>
                  <button onClick={() => setEditingEmployee(null)} className="p-3 hover:bg-white/10 rounded-full transition-all"><X size={24}/></button>
               </div>
 
               <form onSubmit={handleUpdatePreference} className="p-10 space-y-8">
+                 <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100 flex gap-4">
+                    <Info size={24} className="text-amber-500 shrink-0" />
+                    <p className="text-[10px] font-bold text-amber-800 uppercase tracking-tight italic">
+                       Pengaturan di bawah ini adalah preferensi default saat pembuatan Surat Tugas baru. Statistik kumulatif akan dihitung otomatis dari riwayat ST.
+                    </p>
+                 </div>
+
                  <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Jenis Tugas Default</label>
                     <div className="grid grid-cols-2 gap-4">

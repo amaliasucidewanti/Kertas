@@ -22,6 +22,7 @@ import { useNavigate } from 'react-router-dom';
 const Dashboard: React.FC<{ user: Pegawai }> = ({ user }) => {
   const navigate = useNavigate();
   const [closedNotifs, setClosedNotifs] = useState<string[]>([]);
+  // Mengatur default filter ke bulan berjalan
   const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
   
   const currentNip = dataService.standardizeNip(user.nip);
@@ -29,7 +30,7 @@ const Dashboard: React.FC<{ user: Pegawai }> = ({ user }) => {
   const employees = dataService.getPegawai(unitFilter);
   const allTasksWithStatus = dataService.getPenugasanWithStatus(unitFilter);
   
-  // Filter tugas berdasarkan bulan terpilih untuk Chart & Tabel Monitoring
+  // Filter tugas berdasarkan bulan terpilih untuk Analisis Kinerja
   const filteredTasks = useMemo(() => {
     return allTasksWithStatus.filter(t => t.tanggalMulai.includes(`-${selectedMonth}-`));
   }, [allTasksWithStatus, selectedMonth]);
@@ -56,7 +57,8 @@ const Dashboard: React.FC<{ user: Pegawai }> = ({ user }) => {
     });
   }, [allTasksWithStatus, employees]);
 
-  const globalTasksOnDuty = allTasksWithStatus.filter(t => t.calculatedStatus === 'Bertugas' || t.calculatedStatus === 'Akan Selesai');
+  // ST yang sedang berjalan atau akan segera berakhir (Agenda Terkini)
+  const recentAgendas = allTasksWithStatus.filter(t => t.calculatedStatus === 'Bertugas' || t.calculatedStatus === 'Akan Selesai').slice(0, 5);
 
   const reportStats = useMemo(() => {
     const reported = filteredTasks.filter(t => t.laporanStatus === 'Sudah Upload').length;
@@ -131,28 +133,28 @@ const Dashboard: React.FC<{ user: Pegawai }> = ({ user }) => {
          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
          <div className="relative z-10 flex-1 text-center md:text-left">
             <h1 className="text-4xl font-black tracking-tighter leading-tight mb-4 italic uppercase">
-               HALO, {user.nama.split(' ')[0]}!<br/>{user.role === Role.PEGAWAI ? 'MONITOR KERJA TUNTAS ANDA.' : 'REKAPITULASI HARI INI.'}
+               HALO, {user.nama.split(' ')[0]}!<br/>{user.role === Role.PEGAWAI ? 'PROGRES KERJA ANDA.' : 'MONITORING OPERASIONAL.'}
             </h1>
             <p className="text-slate-400 font-medium text-sm max-w-xl">
-               Sistem menyinkronkan data <span className="text-indigo-400 font-black">SURAT_TUGAS</span> secara real-time untuk memastikan akuntabilitas BPMP.
+               Database sinkron secara <span className="text-indigo-400 font-black">KUMULATIF</span>. Setiap penerbitan ST baru akan otomatis teragregasi ke dalam statistik profil pegawai.
             </p>
          </div>
          <div className="bg-white/10 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/10 text-center min-w-[220px] shadow-inner">
             <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-2">
-               Skor Disiplin Real-Time
+               Skor Disiplin Rata-Rata
             </p>
             <p className="text-5xl font-black tracking-tighter">{stats.card4}</p>
             <div className="mt-4 flex items-center justify-center gap-1 text-emerald-400 text-[10px] font-black uppercase tracking-widest">
-               <TrendingUp size={12}/> Akumulasi Kinerja
+               <TrendingUp size={12}/> Trend Positif
             </div>
          </div>
       </div>
 
       {/* FILTER BAR DASHBOARD */}
-      <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-wrap items-center gap-6">
+      <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-wrap items-center gap-6 no-print">
         <div className="flex items-center gap-3">
           <Calendar size={20} className="text-indigo-600" />
-          <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Periode Analisis:</h3>
+          <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Periode Analisis Kinerja:</h3>
         </div>
         <select 
           value={selectedMonth} 
@@ -163,50 +165,47 @@ const Dashboard: React.FC<{ user: Pegawai }> = ({ user }) => {
             <option key={m} value={m}>{new Date(2026, parseInt(m)-1).toLocaleString('id-ID', {month: 'long'})}</option>
           ))}
         </select>
-        <div className="ml-auto text-[9px] font-bold text-slate-400 italic">Data terhubung otomatis dengan Master Pegawai</div>
+        <div className="ml-auto text-[9px] font-bold text-slate-400 italic">Statistik akan mencakup seluruh riwayat penugasan yang terekam.</div>
       </div>
 
-      {/* NEW SECTION: MONITORING PELAKSANAAN TUGAS */}
+      {/* NEW SECTION: MONITORING PELAKSANAAN TUGAS (ST-BASED) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Monitoring Table */}
+        {/* Monitoring Table - Menampilkan Baris per ST */}
         <div className="lg:col-span-8 bg-white rounded-[3.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
           <div className="p-8 border-b bg-slate-50/50 flex justify-between items-center">
             <h3 className="text-sm font-black text-slate-800 tracking-tighter uppercase italic flex items-center gap-2">
-              <FileText size={18} className="text-indigo-600" /> Tabel Monitoring Pelaksanaan Tugas
+              <FileText size={18} className="text-indigo-600" /> Tabel Pelaksanaan Tugas (Kumulatif)
             </h3>
-            <span className="text-[9px] font-black bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full uppercase tracking-widest">{filteredTasks.length} Agenda</span>
+            <span className="text-[9px] font-black bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full uppercase tracking-widest">Total {allTasksWithStatus.length} ST</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] border-b">
-                  <th className="px-8 py-4">Nama Pegawai</th>
-                  <th className="px-8 py-4">Jenis Tugas</th>
-                  <th className="px-8 py-4">Biaya ST</th>
+                  <th className="px-8 py-4">Nomor & Pelaksana</th>
+                  <th className="px-8 py-4 text-center">Tipe & Biaya</th>
                   <th className="px-8 py-4 text-right">Status Laporan</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 text-sm">
-                {filteredTasks.length > 0 ? filteredTasks.slice(0, 10).map((t) => {
-                  // Sinkronisasi: Ambil data preferensi dari Master Pegawai
-                  const emp = employees.find(e => dataService.standardizeNip(e.nip) === dataService.standardizeNip(t.nip));
-                  return (
+                {allTasksWithStatus.length > 0 ? allTasksWithStatus.slice(0, 10).map((t) => (
                     <tr key={t.id} className="group hover:bg-slate-50 transition-colors">
                       <td className="px-8 py-5">
+                        <p className="text-[9px] font-black text-indigo-400 leading-none mb-1 uppercase tracking-widest">{t.nomorSurat}</p>
                         <p className="font-black text-slate-800">{t.namaPegawai}</p>
-                        <p className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter italic truncate max-w-[200px]">{t.namaKegiatan}</p>
+                        <p className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter italic truncate max-w-[250px]">{t.namaKegiatan}</p>
                       </td>
-                      <td className="px-8 py-5">
-                        <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
-                          (emp?.jenisTugas || t.jenisPenugasan) === 'Luring' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-blue-50 text-blue-600 border border-blue-100'
-                        }`}>
-                          {emp?.jenisTugas || t.jenisPenugasan}
-                        </span>
-                      </td>
-                      <td className="px-8 py-5">
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                          {emp?.sumberBiaya || t.sumberBiaya || 'Tanpa Biaya'}
-                        </span>
+                      <td className="px-8 py-5 text-center">
+                        <div className="flex flex-col items-center gap-1.5">
+                           <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                             t.jenisPenugasan === 'Luring' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-blue-50 text-blue-600 border border-blue-100'
+                           }`}>
+                             {t.jenisPenugasan}
+                           </span>
+                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                             {t.sumberBiaya}
+                           </span>
+                        </div>
                       </td>
                       <td className="px-8 py-5 text-right">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${t.laporanStatus === 'Sudah Upload' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
@@ -215,13 +214,12 @@ const Dashboard: React.FC<{ user: Pegawai }> = ({ user }) => {
                         </span>
                       </td>
                     </tr>
-                  );
-                }) : (
+                )) : (
                   <tr>
-                    <td colSpan={4} className="px-8 py-32 text-center opacity-30">
+                    <td colSpan={3} className="px-8 py-32 text-center opacity-30">
                       <div className="flex flex-col items-center gap-4">
                         <FileText size={48} />
-                        <p className="text-[10px] font-black uppercase tracking-widest">Belum ada agenda penugasan pada bulan ini</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest">Database penugasan masih kosong</p>
                       </div>
                     </td>
                   </tr>
@@ -230,15 +228,15 @@ const Dashboard: React.FC<{ user: Pegawai }> = ({ user }) => {
             </table>
           </div>
           <div className="p-4 bg-slate-50 border-t text-center">
-             <button onClick={() => navigate('/laporan')} className="text-[9px] font-black text-indigo-600 uppercase tracking-widest hover:underline">Lihat Seluruh Arsip Laporan</button>
+             <button onClick={() => navigate('/laporan')} className="text-[9px] font-black text-indigo-600 uppercase tracking-widest hover:underline">Kelola Seluruh Laporan Tugas</button>
           </div>
         </div>
 
-        {/* Report Chart */}
+        {/* Report Chart (Pie Chart) */}
         <div className="lg:col-span-4 bg-white rounded-[3.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
           <div className="p-8 border-b bg-slate-50/50 flex justify-between items-center">
             <h3 className="text-sm font-black text-slate-800 tracking-tighter uppercase italic flex items-center gap-2">
-              <PieIcon size={18} className="text-indigo-600" /> Analisis Kepatuhan
+              <PieIcon size={18} className="text-indigo-600" /> Rasio Akuntabilitas
             </h3>
           </div>
           <div className="flex-1 p-8 flex flex-col items-center justify-center">
@@ -278,7 +276,7 @@ const Dashboard: React.FC<{ user: Pegawai }> = ({ user }) => {
                   <p className="text-2xl font-black text-slate-800 tracking-tighter">
                     {filteredTasks.length > 0 ? Math.round((stat.value / filteredTasks.length) * 100) : 0}%
                   </p>
-                  <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase italic tracking-tighter">{stat.value} Penugasan</p>
+                  <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase italic tracking-tighter">{stat.value} Record</p>
                 </div>
               ))}
             </div>
@@ -286,18 +284,18 @@ const Dashboard: React.FC<{ user: Pegawai }> = ({ user }) => {
         </div>
       </div>
       
-      {/* Active Personnel Mini Strip */}
+      {/* Active Personnel Strip */}
       <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
           <div className="p-8 border-b bg-slate-50/50 flex justify-between items-center">
              <h3 className="text-sm font-black text-slate-800 tracking-tighter uppercase italic flex items-center gap-2">
-                <Activity size={18} className="text-rose-500" /> Real-Time Personnel On Duty
+                <Activity size={18} className="text-rose-500" /> Personel Bertugas (WIT)
              </h3>
              <span className="bg-rose-100 text-rose-600 px-3 py-1 rounded-full text-[9px] font-black uppercase">{activePersonnel.length} Orang</span>
           </div>
           <div className="flex flex-wrap p-6 gap-4">
              {activePersonnel.length > 0 ? activePersonnel.map((p, i) => (
                <div key={i} className="flex items-center gap-4 p-4 bg-slate-50 rounded-3xl border border-slate-100 hover:border-indigo-100 transition-all">
-                  <div className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-xs">
+                  <div className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-xs shadow-lg">
                     {p.nama.charAt(0)}
                   </div>
                   <div>
@@ -308,7 +306,7 @@ const Dashboard: React.FC<{ user: Pegawai }> = ({ user }) => {
                   </div>
                </div>
              )) : (
-               <div className="w-full py-10 text-center text-[10px] font-black text-slate-300 uppercase italic tracking-[0.2em]">Semua personel sedang standby / bebas tugas</div>
+               <div className="w-full py-10 text-center text-[10px] font-black text-slate-300 uppercase italic tracking-[0.2em]">Sistem mencatat seluruh personel sedang standby</div>
              )}
           </div>
       </div>

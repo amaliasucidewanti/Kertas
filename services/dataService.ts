@@ -110,7 +110,6 @@ export const dataService = {
           if (existingIdx === -1) {
               MOCK_PEGAWAI.push(sp);
           } else {
-              // Update metadata but keep custom fields if they exist
               MOCK_PEGAWAI[existingIdx] = {
                 ...MOCK_PEGAWAI[existingIdx],
                 nama: sp.nama,
@@ -149,6 +148,26 @@ export const dataService = {
 
   getPenugasan: () => MOCK_PENUGASAN,
   getPenugasanById: (id: string) => MOCK_PENUGASAN.find(p => p.id === id),
+
+  // Agregasi Data Penugasan per Pegawai
+  getEmployeeAssignmentSummary: (nip: string) => {
+    const cNip = dataService.standardizeNip(nip);
+    const employeeTasks = MOCK_PENUGASAN.filter(t => dataService.standardizeNip(t.nip) === cNip);
+    
+    const typeCounts = { luring: 0, daring: 0 };
+    const costCounts = { bpmp: 0, penyelenggara: 0, tanpaBiaya: 0 };
+
+    employeeTasks.forEach(t => {
+      if (t.jenisPenugasan === 'Luring') typeCounts.luring++;
+      if (t.jenisPenugasan === 'Daring') typeCounts.daring++;
+
+      if (t.sumberBiaya === 'BPMP') costCounts.bpmp++;
+      else if (t.sumberBiaya === 'Penyelenggara') costCounts.penyelenggara++;
+      else costCounts.tanpaBiaya++;
+    });
+
+    return { typeCounts, costCounts, total: employeeTasks.length };
+  },
 
   getReportReminders: (nip: string) => {
     const today = dataService.getTodayWIT();
@@ -193,7 +212,7 @@ export const dataService = {
         priority = 2;
       }
       return { ...st, calculatedStatus: statusLabel, calculatedColor: statusColor, calculatedContext: statusContext, priority };
-    });
+    }).sort((a,b) => b.createdAt.localeCompare(a.createdAt));
   },
 
   saveLaporan: (taskId: string, reportData: Partial<Penugasan>) => {
