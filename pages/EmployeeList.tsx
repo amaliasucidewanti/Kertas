@@ -14,7 +14,6 @@ const EmployeeList: React.FC<{ user: Pegawai }> = ({ user }) => {
   const units = ['Semua', ...Array.from(new Set(employees.map(e => e.unitKerja)))];
 
   const filtered = useMemo(() => {
-    const today = dataService.getTodayWIT();
     return employees.filter(e => {
       const matchesSearch = e.nama.toLowerCase().includes(search.toLowerCase()) || e.nip.includes(search);
       const matchesUnit = unitFilter === 'Semua' || e.unitKerja === unitFilter;
@@ -108,14 +107,25 @@ const EmployeeList: React.FC<{ user: Pegawai }> = ({ user }) => {
                       </div>
                     </td>
                     <td className="px-8 py-6">
-                       <div className="space-y-1">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter flex justify-between">
-                            <span>BPMP: {emp.costCounts.bpmp}x</span>
-                            <span>Penyelenggara: {emp.costCounts.penyelenggara}x</span>
-                          </p>
-                          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
-                             <div className="h-full bg-indigo-500" style={{ width: `${(emp.costCounts.bpmp / (emp.total || 1)) * 100}%` }}></div>
-                             <div className="h-full bg-emerald-500" style={{ width: `${(emp.costCounts.penyelenggara / (emp.total || 1)) * 100}%` }}></div>
+                       <div className="space-y-2">
+                          <div className="flex flex-col gap-0.5">
+                             <div className="flex justify-between text-[9px] font-black uppercase tracking-tighter">
+                                <span className="text-slate-400">BPMP:</span>
+                                <span className="text-slate-700">{emp.costCounts.bpmp} kali</span>
+                             </div>
+                             <div className="flex justify-between text-[9px] font-black uppercase tracking-tighter">
+                                <span className="text-slate-400">Penyelenggara:</span>
+                                <span className="text-slate-700">{emp.costCounts.penyelenggara} kali</span>
+                             </div>
+                             <div className="flex justify-between text-[9px] font-black uppercase tracking-tighter">
+                                <span className="text-slate-400">Tanpa Biaya:</span>
+                                <span className="text-slate-700">{emp.costCounts.tanpaBiaya} kali</span>
+                             </div>
+                          </div>
+                          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+                             <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${(emp.costCounts.bpmp / (emp.total || 1)) * 100}%` }}></div>
+                             <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${(emp.costCounts.penyelenggara / (emp.total || 1)) * 100}%` }}></div>
+                             <div className="h-full bg-slate-400 transition-all duration-500" style={{ width: `${(emp.costCounts.tanpaBiaya / (emp.total || 1)) * 100}%` }}></div>
                           </div>
                        </div>
                     </td>
@@ -172,7 +182,9 @@ const EmployeeList: React.FC<{ user: Pegawai }> = ({ user }) => {
 
               <form onSubmit={handleUpdatePreference} className="p-10 space-y-8">
                  <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100 flex gap-4">
-                    <Info size={24} className="text-amber-500 shrink-0" />
+                    <div className="mt-1">
+                      <Info size={20} className="text-amber-500 shrink-0" />
+                    </div>
                     <p className="text-[10px] font-bold text-amber-800 uppercase tracking-tight italic">
                        Pengaturan di bawah ini adalah preferensi default saat pembuatan Surat Tugas baru. Statistik kumulatif akan dihitung otomatis dari riwayat ST.
                     </p>
