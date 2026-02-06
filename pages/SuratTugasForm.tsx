@@ -1,14 +1,21 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Pegawai, Penugasan } from '../types';
-import { Eye, Save, ChevronLeft, Printer, FileText, AlertTriangle, ShieldCheck, Landmark } from 'lucide-react';
+import { Eye, Save, ChevronLeft, Printer, FileText, AlertTriangle, ShieldCheck, Landmark, ShieldAlert } from 'lucide-react';
 import { dataService } from '../services/dataService';
 
 const SuratTugasForm: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const selectedEmp = location.state?.employee as Pegawai;
+
+  // Gatekeeper Validation for selected individual
+  const { bottom5 } = useMemo(() => dataService.getEligibleEmployees(), []);
+  const isExcluded = useMemo(() => {
+    if (!selectedEmp || !bottom5) return false;
+    return bottom5.some(p => p.nip === selectedEmp.nip);
+  }, [selectedEmp, bottom5]);
 
   const [formData, setFormData] = useState({
     namaPegawai: selectedEmp?.nama || '',
@@ -37,14 +44,22 @@ const SuratTugasForm: React.FC = () => {
         formData.tanggalSelesai, 
         formData.jenisPenugasan
       );
-      setConflictError(result.conflict ? result.message || 'Bentrok Jadwal!' : null);
-      return result.conflict;
+      if (result.conflict) {
+        setConflictError(result.message || 'Bentrok Jadwal!');
+        return true;
+      }
+      setConflictError(null);
+      return false;
     }
     return false;
   };
 
   const handlePreview = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isExcluded) {
+      alert("Pegawai ini masuk dalam daftar pengecualian (Gatekeeper) karena skor disiplin terendah. Tidak dapat menerbitkan ST.");
+      return;
+    }
     if (checkConflict()) {
       window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
       return;
@@ -157,7 +172,17 @@ const SuratTugasForm: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-[3.5rem] p-12 border border-slate-100 shadow-2xl relative overflow-hidden">
+      {isExcluded && (
+        <div className="mb-8 p-6 bg-rose-50 border-2 border-rose-200 rounded-[2rem] flex items-center gap-4 text-rose-600">
+           <ShieldAlert size={32} className="animate-pulse" />
+           <div>
+              <p className="text-sm font-black uppercase tracking-widest">Akses Penugasan Dibatasi (Gatekeeper)</p>
+              <p className="text-xs font-bold mt-1 opacity-70">Pegawai ini memiliki skor disiplin terendah. Diperlukan pembinaan internal sebelum penugasan baru diterbitkan.</p>
+           </div>
+        </div>
+      )}
+
+      <div className={`bg-white rounded-[3.5rem] p-12 border border-slate-100 shadow-2xl relative overflow-hidden ${isExcluded ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
         <form onSubmit={handlePreview} className="space-y-12">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             <div className="space-y-6">

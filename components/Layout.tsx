@@ -17,7 +17,8 @@ import {
   ShieldCheck,
   RefreshCw,
   PlusCircle,
-  ClipboardCheck
+  ClipboardCheck,
+  Map as MapIcon
 } from 'lucide-react';
 import { dataService } from '../services/dataService';
 
@@ -61,6 +62,7 @@ const Layout: React.FC<LayoutProps> = ({ user, onLogout, children }) => {
 
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard, roles: [Role.PEGAWAI, Role.ADMIN_TIM, Role.SUPER_ADMIN] },
+    { name: 'Program 2026', path: '/program-2026', icon: MapIcon, roles: [Role.PEGAWAI, Role.ADMIN_TIM, Role.SUPER_ADMIN] },
     { name: 'Isi Laporan Tugas', path: '/isi-laporan', icon: ClipboardCheck, roles: [Role.PEGAWAI, Role.ADMIN_TIM, Role.SUPER_ADMIN] },
     { name: 'Data Pegawai', path: '/pegawai', icon: Users, roles: [Role.PEGAWAI, Role.ADMIN_TIM, Role.SUPER_ADMIN] },
     { name: 'Kalender Tugas', path: '/kalender', icon: Calendar, roles: [Role.PEGAWAI, Role.ADMIN_TIM, Role.SUPER_ADMIN] },

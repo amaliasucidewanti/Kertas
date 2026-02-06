@@ -10,11 +10,28 @@ const DisciplineView: React.FC<{ user: Pegawai }> = ({ user }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterUnit, setFilterUnit] = useState('Semua');
 
-  const allDiscipline = dataService.getAllKedisiplinan();
   const allEmployees = dataService.getPegawai();
 
   const discipline = selectedNip ? dataService.getKedisiplinan(selectedNip) : null;
   const empInfo = selectedNip ? allEmployees.find(e => e.nip === selectedNip) : null;
+
+  const getScoreColorClass = (score: number) => {
+    if (score > 90) return 'text-emerald-500';
+    if (score >= 76) return 'text-indigo-500';
+    return 'text-rose-500';
+  };
+
+  const getScoreBgClass = (score: number) => {
+    if (score > 90) return 'bg-emerald-500';
+    if (score >= 76) return 'bg-indigo-500';
+    return 'bg-rose-500';
+  };
+
+  const getScoreBadgeClass = (score: number) => {
+    if (score > 90) return 'bg-emerald-50 text-emerald-600';
+    if (score >= 76) return 'bg-indigo-50 text-indigo-600';
+    return 'bg-rose-50 text-rose-600';
+  };
 
   const scoreData = useMemo(() => {
     if (!discipline) return [];
@@ -84,8 +101,6 @@ const DisciplineView: React.FC<{ user: Pegawai }> = ({ user }) => {
                     {filteredEmployees.map(emp => {
                        const disc = dataService.getKedisiplinan(emp.nip);
                        const score = disc?.nilaiAkhir || 0;
-                       const statusColor = score > 90 ? 'text-emerald-500' : score > 75 ? 'text-indigo-500' : 'text-rose-500';
-                       const bgColor = score > 90 ? 'bg-emerald-500' : score > 75 ? 'bg-indigo-500' : 'bg-rose-500';
                        return (
                           <tr key={emp.nip} className="hover:bg-slate-50 transition-all group cursor-pointer" onClick={() => setSelectedNip(emp.nip)}>
                              <td className="px-8 py-6">
@@ -98,14 +113,14 @@ const DisciplineView: React.FC<{ user: Pegawai }> = ({ user }) => {
                              <td className="px-8 py-6 w-80">
                                 <div className="flex items-center gap-4">
                                    <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
-                                      <div className={`h-full ${bgColor} transition-all duration-700`} style={{ width: `${score}%` }}></div>
+                                      <div className={`h-full ${getScoreBgClass(score)} transition-all duration-700`} style={{ width: `${score}%` }}></div>
                                    </div>
-                                   <span className={`text-sm font-black w-10 text-right ${statusColor}`}>{score}%</span>
+                                   <span className={`text-sm font-black w-10 text-right ${getScoreColorClass(score)}`}>{score}%</span>
                                 </div>
                              </td>
                              <td className="px-8 py-6">
-                                <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${score > 90 ? 'bg-emerald-50 text-emerald-600' : score > 75 ? 'bg-indigo-50 text-indigo-600' : 'bg-rose-50 text-rose-600'}`}>
-                                   {score > 90 ? 'Sangat Baik' : score > 75 ? 'Standar' : 'Perlu Perbaikan'}
+                                <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${getScoreBadgeClass(score)}`}>
+                                   {score > 90 ? 'Sangat Baik' : score >= 76 ? 'Standar' : 'Perlu Perbaikan'}
                                 </span>
                              </td>
                              <td className="px-8 py-6 text-right">
@@ -149,9 +164,9 @@ const DisciplineView: React.FC<{ user: Pegawai }> = ({ user }) => {
         </div>
         <div className="bg-white p-10 rounded-[2.5rem] border border-white/20 text-center relative z-10 min-w-[240px] shadow-2xl mt-8 md:mt-0">
            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Skor Kinerja Gabungan</p>
-           <p className={`text-7xl font-black tracking-tighter ${discipline.nilaiAkhir > 90 ? 'text-emerald-500' : discipline.nilaiAkhir > 75 ? 'text-indigo-600' : 'text-rose-500'}`}>{discipline.nilaiAkhir}%</p>
-           <div className={`mt-4 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest ${discipline.nilaiAkhir > 90 ? 'text-emerald-600' : 'text-indigo-600'}`}>
-              <CheckCircle size={14}/> Kategori: {discipline.nilaiAkhir > 90 ? 'Sangat Baik' : discipline.nilaiAkhir > 75 ? 'Baik' : 'Butuh Pembinaan'}
+           <p className={`text-7xl font-black tracking-tighter ${getScoreColorClass(discipline.nilaiAkhir)}`}>{discipline.nilaiAkhir}%</p>
+           <div className={`mt-4 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest ${getScoreColorClass(discipline.nilaiAkhir)}`}>
+              <CheckCircle size={14}/> Kategori: {discipline.nilaiAkhir > 90 ? 'Sangat Baik' : discipline.nilaiAkhir >= 76 ? 'Standar' : 'Perlu Perbaikan'}
            </div>
         </div>
       </div>

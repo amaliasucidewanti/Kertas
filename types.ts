@@ -49,6 +49,20 @@ export interface Penugasan {
   createdAt: string;
 }
 
+export interface ProgramKegiatan {
+  id: string;
+  namaKegiatan: string;
+  bulan: string; // "01" - "12"
+  mingguKe: number; // 1 - 5
+  timKerja: 'PAUD' | 'SD' | 'SMP' | 'SMA' | 'Kasubbag Umum' | 'Lainnya';
+  status: 'Belum Dilaksanakan' | 'Sudah Dilaksanakan';
+  laporanFileLink?: string;
+  laporanTimestamp?: string;
+  pelaksana?: string; // NIP pelaksana
+  deskripsiLaporan?: string;
+  updatedAt: string;
+}
+
 export interface Kedisiplinan {
   nip: string;
   kehadiran: number;
