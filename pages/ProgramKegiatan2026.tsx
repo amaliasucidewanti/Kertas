@@ -1,15 +1,13 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Role, Pegawai, ProgramKegiatan } from '../types';
 import { dataService } from '../services/dataService';
 import { 
   Plus, 
   Search, 
-  Filter, 
   UploadCloud, 
   CheckCircle, 
   AlertCircle, 
-  Calendar, 
   X, 
   Save, 
   Trash2, 
@@ -23,7 +21,6 @@ import {
 
 const ProgramKegiatan2026: React.FC<{ user: Pegawai }> = ({ user }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterMonth, setFilterMonth] = useState('Semua');
   const [filterTeam, setFilterTeam] = useState('Semua');
   const [filterStatus, setFilterStatus] = useState('Semua');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -60,20 +57,17 @@ const ProgramKegiatan2026: React.FC<{ user: Pegawai }> = ({ user }) => {
   const filtered = useMemo(() => {
     return allPrograms.filter(p => {
       const matchesSearch = p.namaKegiatan.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesMonth = filterMonth === 'Semua' || p.bulan === filterMonth;
       const matchesTeam = filterTeam === 'Semua' || p.timKerja === filterTeam;
       const matchesStatus = filterStatus === 'Semua' || p.status === filterStatus;
-      return matchesSearch && matchesMonth && matchesTeam && matchesStatus;
+      return matchesSearch && matchesTeam && matchesStatus;
     });
-  }, [allPrograms, searchTerm, filterMonth, filterTeam, filterStatus]);
+  }, [allPrograms, searchTerm, filterTeam, filterStatus]);
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     const target = e.target as any;
     const newProgram = {
       namaKegiatan: target.namaKegiatan.value,
-      bulan: target.bulan.value,
-      mingguKe: parseInt(target.mingguKe.value),
       timKerja: target.timKerja.value,
       pelaksana: target.pelaksana.value
     };
@@ -108,28 +102,20 @@ const ProgramKegiatan2026: React.FC<{ user: Pegawai }> = ({ user }) => {
     }
   };
 
-  const months = [
-    { id: '01', name: 'Januari' }, { id: '02', name: 'Februari' }, { id: '03', name: 'Maret' },
-    { id: '04', name: 'April' }, { id: '05', name: 'Mei' }, { id: '06', name: 'Juni' },
-    { id: '07', name: 'Juli' }, { id: '08', name: 'Agustus' }, { id: '09', name: 'September' },
-    { id: '10', name: 'Oktober' }, { id: '11', name: 'November' }, { id: '12', name: 'Desember' }
-  ];
-
   const teams = ['PAUD', 'SD', 'SMP', 'SMA', 'Kasubbag Umum', 'Lainnya'];
 
   return (
     <div className="space-y-8 pb-32 max-w-7xl mx-auto animate-fade-in">
-      {/* 1. Header Banner */}
       <div className="bg-slate-900 rounded-[3rem] p-12 text-white shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none rotate-12"><MapIcon size={240}/></div>
         <div className="relative z-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
               <div className="inline-flex items-center gap-3 bg-white/10 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-8 backdrop-blur-md">
-                <Calendar size={16} className="text-amber-400" /> Roadmap Strategis TA 2026
+                Roadmap Strategis TA 2026
               </div>
               <h1 className="text-4xl font-black italic tracking-tighter uppercase leading-none">Roadmap Program 2026</h1>
-              <p className="text-indigo-300 font-bold text-sm mt-4 italic opacity-80">Sinkronisasi data real-time dengan Spreadsheet Master BPMP.</p>
+              <p className="text-indigo-300 font-bold text-sm mt-4 italic opacity-80">Data real-time sinkron dengan Spreadsheet Master BPMP.</p>
             </div>
             
             <div className="bg-white/5 backdrop-blur-xl p-6 rounded-[2.5rem] border border-white/10 flex flex-col items-center gap-4 text-center">
@@ -151,7 +137,6 @@ const ProgramKegiatan2026: React.FC<{ user: Pegawai }> = ({ user }) => {
         </div>
       </div>
 
-      {/* 2. Stats & Filter Bar */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 no-print">
         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm text-center">
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Total Program</p>
@@ -171,7 +156,6 @@ const ProgramKegiatan2026: React.FC<{ user: Pegawai }> = ({ user }) => {
         </div>
       </div>
 
-      {/* 3. Filter Bar */}
       <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-wrap items-center gap-4 no-print">
         <div className="relative flex-1 min-w-[300px]">
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
@@ -181,10 +165,6 @@ const ProgramKegiatan2026: React.FC<{ user: Pegawai }> = ({ user }) => {
             value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
-        <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} className="bg-slate-50 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-transparent outline-none">
-          <option value="Semua">Semua Bulan</option>
-          {months.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-        </select>
         <select value={filterTeam} onChange={e => setFilterTeam(e.target.value)} className="bg-slate-50 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-transparent outline-none">
           <option value="Semua">Semua Tim</option>
           {teams.map(t => <option key={t} value={t}>{t}</option>)}
@@ -196,13 +176,12 @@ const ProgramKegiatan2026: React.FC<{ user: Pegawai }> = ({ user }) => {
         </select>
       </div>
 
-      {/* 4. Table */}
       <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b">
-                <th className="px-10 py-6">Nama Kegiatan & Jadwal</th>
+                <th className="px-10 py-6">Nama Kegiatan</th>
                 <th className="px-10 py-6 text-center">Penanggung Jawab</th>
                 <th className="px-10 py-6 text-center">Status</th>
                 <th className="px-10 py-6 text-right">Opsi</th>
@@ -214,9 +193,6 @@ const ProgramKegiatan2026: React.FC<{ user: Pegawai }> = ({ user }) => {
                   <td className="px-10 py-6">
                     <p className="font-black text-slate-800 uppercase tracking-tight mb-1">{p.namaKegiatan}</p>
                     <div className="flex items-center gap-3">
-                      <span className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 uppercase italic">
-                        <Calendar size={12} /> {months.find(m => m.id === p.bulan)?.name || "Bulan Terlampir"}
-                      </span>
                       {p.id.startsWith('SYNC-') && (
                         <span className="bg-indigo-50 text-indigo-500 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest">Auto Sync</span>
                       )}
@@ -278,8 +254,6 @@ const ProgramKegiatan2026: React.FC<{ user: Pegawai }> = ({ user }) => {
         </div>
       </div>
 
-      {/* MODALS */}
-      {/* Add Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-fade-in">
           <div className="bg-white w-full max-w-2xl rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col">
@@ -294,20 +268,6 @@ const ProgramKegiatan2026: React.FC<{ user: Pegawai }> = ({ user }) => {
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nama Kegiatan *</label>
                 <input name="namaKegiatan" required className="w-full bg-slate-50 p-4 rounded-2xl text-sm font-bold border border-slate-100 outline-none focus:border-indigo-600" />
-              </div>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Bulan Pelaksanaan</label>
-                  <select name="bulan" className="w-full bg-slate-50 p-4 rounded-2xl text-sm font-bold border border-slate-100 outline-none">
-                    {months.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Minggu Ke-</label>
-                  <select name="mingguKe" className="w-full bg-slate-50 p-4 rounded-2xl text-sm font-bold border border-slate-100 outline-none">
-                    {[1,2,3,4,5].map(w => <option key={w} value={w}>Minggu {w}</option>)}
-                  </select>
-                </div>
               </div>
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -331,7 +291,6 @@ const ProgramKegiatan2026: React.FC<{ user: Pegawai }> = ({ user }) => {
         </div>
       )}
 
-      {/* Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-fade-in">
           <div className="bg-white w-full max-w-xl rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col">

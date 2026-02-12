@@ -15,6 +15,7 @@ import Reports from './pages/Reports';
 import ChangePassword from './pages/ChangePassword';
 import ManageAccounts from './pages/ManageAccounts';
 import ProgramKegiatan2026 from './pages/ProgramKegiatan2026';
+import SystemManual from './pages/SystemManual';
 import Layout from './components/Layout';
 import { dataService } from './services/dataService';
 
@@ -89,6 +90,7 @@ const App: React.FC = () => {
             <Route path="/kalender" element={<AssignmentCalendar />} />
             <Route path="/discipline" element={<DisciplineView user={auth.user!} />} />
             <Route path="/program-2026" element={<ProgramKegiatan2026 user={auth.user!} />} />
+            <Route path="/manual" element={<SystemManual />} />
             <Route path="/change-password" element={<ChangePassword onPasswordChanged={handlePasswordChanged} forced={false} />} />
             <Route path="/isi-laporan" element={<LaporanTugas user={auth.user!} />} />
             

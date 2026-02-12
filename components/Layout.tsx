@@ -18,7 +18,8 @@ import {
   RefreshCw,
   PlusCircle,
   ClipboardCheck,
-  Map as MapIcon
+  Map as MapIcon,
+  HelpCircle
 } from 'lucide-react';
 import { dataService } from '../services/dataService';
 
@@ -67,6 +68,7 @@ const Layout: React.FC<LayoutProps> = ({ user, onLogout, children }) => {
     { name: 'Data Pegawai', path: '/pegawai', icon: Users, roles: [Role.PEGAWAI, Role.ADMIN_TIM, Role.SUPER_ADMIN] },
     { name: 'Kalender Tugas', path: '/kalender', icon: Calendar, roles: [Role.PEGAWAI, Role.ADMIN_TIM, Role.SUPER_ADMIN] },
     { name: 'Kedisiplinan', path: '/discipline', icon: ClockIcon, roles: [Role.PEGAWAI, Role.ADMIN_TIM, Role.SUPER_ADMIN] },
+    { name: 'Panduan Sistem', path: '/manual', icon: HelpCircle, roles: [Role.PEGAWAI, Role.ADMIN_TIM, Role.SUPER_ADMIN] },
     { name: 'Buat Penugasan', path: '/surat-tugas/baru', icon: PlusCircle, roles: [Role.ADMIN_TIM, Role.SUPER_ADMIN] },
     { name: 'Laporan Rekap', path: '/laporan', icon: FileText, roles: [Role.ADMIN_TIM, Role.SUPER_ADMIN] },
     { name: 'Kelola Akun', path: '/accounts', icon: ShieldCheck, roles: [Role.ADMIN_TIM, Role.SUPER_ADMIN] },

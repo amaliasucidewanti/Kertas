@@ -2,10 +2,11 @@
 import { Role, Pegawai, Penugasan, Kedisiplinan, ProgramKegiatan } from '../types';
 
 const SPREADSHEET_ID = '1iB7Tdda08wD1u5IwiKUEjkfI2JFzw4wjTI_bGRhivVc';
-const PROGRAM_2026_ID = '1BYzuh5PnniaafkV25HkBE7QCcdMvfjC9'; // ID Spreadsheet Program 2026
-const PROGRAM_2026_GID = '1637860300'; // GID Sheet Program 2026
+const PROGRAM_2026_ID = '1BYzuh5PnniaafkV25HkBE7QCcdMvfjC9'; 
+const PROGRAM_2026_GID = '1637860300'; 
 
 const LOCAL_STORAGE_KEY = 'si-kertas-local-db-v1';
+const GITHUB_CONFIG_KEY = 'si-kertas-github-cfg';
 
 const SYSTEM_USERS: Pegawai[] = [
   { id: 'sys-admin', nama: 'Administrator Utama', nip: '000000', jabatan: 'Super Admin', unitKerja: 'Pusat Data', role: Role.SUPER_ADMIN, username: 'Admin', passwordChangeRequired: false, jenisTugas: 'Luring', sumberBiaya: 'BPMP' },
@@ -52,7 +53,6 @@ const persistData = () => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
   } catch (e) {
     console.error("LocalStorage Full:", e);
-    alert("Penyimpanan browser penuh. Mohon hapus beberapa laporan lama atau ekspor backup.");
   }
 };
 
@@ -98,7 +98,7 @@ export const dataService = {
 
       const [pegCsv, disCsv] = await Promise.all([pegRes.text(), disRes.text()]);
       
-      const pegRows = parseCSV(pegCsv).slice(1); // Skip header
+      const pegRows = parseCSV(pegCsv).slice(1);
       const spreadsheetPegawai = pegRows.map((row, idx) => {
         const nip = dataService.standardizeNip(row[0] || '');
         return {
@@ -130,7 +130,7 @@ export const dataService = {
           }
       });
 
-      const disRows = parseCSV(disCsv).slice(1); // Skip header
+      const disRows = parseCSV(disCsv).slice(1);
       MOCK_KEDISIPLINAN = disRows.map((row) => ({
         nip: dataService.standardizeNip(row[0] || ''),
         kehadiran: parseFloat(row[1]) || 0,
@@ -140,7 +140,6 @@ export const dataService = {
         nilaiAkhir: parseFloat(row[5]) || 0
       }));
 
-      // Auto Sync Program 2026
       await dataService.syncProgram2026();
 
       persistData();
@@ -151,15 +150,11 @@ export const dataService = {
     }
   },
 
-  /**
-   * Mengambil data Program 2026 dari Google Spreadsheet
-   */
   syncProgram2026: async () => {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      // Menggunakan export CSV agar tidak perlu API Key (Read-Only Public/Shared link)
       const res = await fetch(`https://docs.google.com/spreadsheets/d/${PROGRAM_2026_ID}/export?format=csv&gid=${PROGRAM_2026_GID}`, { signal: controller.signal });
       clearTimeout(timeoutId);
 
@@ -171,9 +166,7 @@ export const dataService = {
 
       const headers = rows[0].map(h => h.toLowerCase().trim());
       
-      // Dynamic Mapping
       const idxProgram = headers.findIndex(h => h.includes('program 2026'));
-      const idxJadwal = headers.findIndex(h => h.includes('jadwal'));
       const idxPJ = headers.findIndex(h => h.includes('penanggung jawab'));
 
       if (idxProgram === -1) throw new Error("Format kolom 'Program 2026' tidak ditemukan");
@@ -183,31 +176,20 @@ export const dataService = {
 
       rawData.forEach((row, i) => {
         const nama = row[idxProgram]?.trim();
-        if (!nama) return; // Skip nama kosong
+        if (!nama) return; 
 
-        const jadwal = idxJadwal !== -1 ? row[idxJadwal] : "01";
         const pj = idxPJ !== -1 ? row[idxPJ] : "Lainnya";
 
-        // Parsing Bulan Sederhana (Jika formatnya e.g. "Januari")
-        const monthMap: Record<string, string> = {
-          'januari': '01', 'februari': '02', 'maret': '03', 'april': '04', 'mei': '05', 'juni': '06',
-          'juli': '07', 'agustus': '08', 'september': '09', 'oktober': '10', 'november': '11', 'desember': '12'
-        };
-        const detectedMonth = Object.keys(monthMap).find(m => jadwal.toLowerCase().includes(m));
-        const bulan = detectedMonth ? monthMap[detectedMonth] : "01";
-
-        // Cek duplikasi di data lokal berdasarkan nama kegiatan
         const existing = MOCK_PROGRAM_KEGIATAN.find(p => p.namaKegiatan.toLowerCase() === nama.toLowerCase());
 
         if (existing) {
-          // Update data PJ dan Jadwal jika berubah, tapi jangan ganggu status lapor lokal
           existing.timKerja = pj as any;
           existing.updatedAt = new Date().toISOString();
         } else {
           syncedPrograms.push({
             id: `SYNC-${Date.now()}-${i}`,
             namaKegiatan: nama,
-            bulan: bulan,
+            bulan: "01",
             mingguKe: 1,
             timKerja: pj as any,
             status: 'Belum Dilaksanakan',
@@ -222,6 +204,70 @@ export const dataService = {
       return true;
     } catch (e) {
       console.error("Sync Program 2026 Error:", e);
+      throw e;
+    }
+  },
+
+  // GITHUB AUTO-SYNC LOGIC
+  getGithubConfig: () => {
+    const cfg = localStorage.getItem(GITHUB_CONFIG_KEY);
+    return cfg ? JSON.parse(cfg) : { token: '', repo: '', path: 'backup_sikertas.json' };
+  },
+
+  saveGithubConfig: (cfg: { token: string, repo: string, path: string }) => {
+    localStorage.setItem(GITHUB_CONFIG_KEY, JSON.stringify(cfg));
+  },
+
+  pushToGithub: async () => {
+    const config = dataService.getGithubConfig();
+    if (!config.token || !config.repo) {
+      throw new Error("GitHub Integration belum dikonfigurasi.");
+    }
+
+    const dataToSave = {
+      penugasan: MOCK_PENUGASAN,
+      pegawai: MOCK_PEGAWAI,
+      programKegiatan: MOCK_PROGRAM_KEGIATAN,
+      lastUpdate: new Date().toISOString()
+    };
+
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(dataToSave, null, 2))));
+    const url = `https://api.github.com/repos/${config.repo}/contents/${config.path}`;
+
+    try {
+      // 1. Get existing file to get SHA (mandatory for GitHub API update)
+      const getRes = await fetch(url, {
+        headers: { 'Authorization': `token ${config.token}` }
+      });
+
+      let sha = null;
+      if (getRes.ok) {
+        const existingData = await getRes.json();
+        sha = existingData.sha;
+      }
+
+      // 2. Put new content
+      const putRes = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `token ${config.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: `SI-KERTAS Auto-Sync: ${new Date().toLocaleString()}`,
+          content: content,
+          sha: sha // Include SHA if file exists
+        })
+      });
+
+      if (!putRes.ok) {
+        const err = await putRes.json();
+        throw new Error(err.message || "Gagal Push ke GitHub");
+      }
+
+      return true;
+    } catch (e) {
+      console.error("GitHub Sync Error:", e);
       throw e;
     }
   },
@@ -261,7 +307,7 @@ export const dataService = {
     return true;
   },
 
-  getPenugasan: () => MOCK_PENUGASAN,
+  getPenugasan: () => [...MOCK_PENUGASAN],
   getPenugasanById: (id: string) => MOCK_PENUGASAN.find(p => p.id === id),
 
   getPenugasanWithStatus: (unitKerja?: string) => {
@@ -377,8 +423,7 @@ export const dataService = {
   getIdleDays: (nip: string) => {
     const cNip = dataService.standardizeNip(nip);
     const today = dataService.getTodayWIT();
-    const isBertugas = dataService.isBertugas(cNip);
-    if (isBertugas) return 0;
+    if (dataService.isBertugas(cNip)) return 0;
 
     const myTasks = MOCK_PENUGASAN.filter(t => dataService.standardizeNip(t.nip) === cNip);
     if (myTasks.length === 0) return 365;
@@ -388,13 +433,15 @@ export const dataService = {
     return Math.max(0, Math.floor(diff / (1000 * 3600 * 24)));
   },
 
-  getProgramKegiatan: () => [...MOCK_PROGRAM_KEGIATAN].sort((a,b) => (a.bulan + a.mingguKe).localeCompare(b.bulan + b.mingguKe)),
+  getProgramKegiatan: () => [...MOCK_PROGRAM_KEGIATAN],
   getLastSyncProgram: () => LAST_SYNC_PROGRAM,
   
   addProgramKegiatan: (data: any) => {
     const newPK: ProgramKegiatan = {
       ...data,
       id: `PK-${Date.now()}`,
+      bulan: "01",
+      mingguKe: 1,
       status: 'Belum Dilaksanakan',
       updatedAt: new Date().toISOString()
     };
@@ -452,8 +499,6 @@ export const dataService = {
     );
     const luringConflict = existingAtSameTime.some(p => p.jenisPenugasan === 'Luring' && jenis === 'Luring');
     if (luringConflict) return { conflict: true, message: `Pegawai memiliki penugasan LURING lain pada periode tsb.` };
-    const sameTypeConflict = existingAtSameTime.some(p => p.jenisPenugasan === jenis);
-    if (sameTypeConflict) return { conflict: false, warning: `Pegawai sudah memiliki tugas berjenis ${jenis} di hari tsb.` };
     return { conflict: false };
   },
 
@@ -477,7 +522,7 @@ export const dataService = {
 
   getEligibleEmployees: (unitKerja?: string) => {
     const all = dataService.getPegawai(unitKerja);
-    if (all.length <= 5) return { employees: all, warning: "Jumlah pegawai terbatas, aturan Gatekeeper non-aktif." };
+    if (all.length <= 5) return { employees: all, warning: "Jumlah pegawai terbatas." };
     const withScores = all.map(p => ({ p, score: dataService.getKedisiplinan(p.nip)?.nilaiAkhir || 0 }));
     withScores.sort((a, b) => a.score - b.score);
     const bottom5Nips = new Set(withScores.slice(0, 5).map(x => x.p.nip));
@@ -526,7 +571,7 @@ export const dataService = {
   },
 
   clearDatabase: () => {
-    if (confirm('PERINGATAN: Semua data penugasan akan dihapus. Aplikasi akan melakukan ekspor backup otomatis sebelum menghapus. Lanjutkan?')) {
+    if (confirm('PERINGATAN: Semua data penugasan akan dihapus.')) {
       dataService.exportDatabase();
       localStorage.removeItem(LOCAL_STORAGE_KEY);
       window.location.reload();

@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
 import { dataService } from '../services/dataService';
-import { ChevronLeft, ChevronRight, User, Users, MapPin, Briefcase, X, Info, CheckCircle2, AlertCircle, History } from 'lucide-react';
+// Added missing 'Shield' import
+import { ChevronLeft, ChevronRight, User, Users, MapPin, Briefcase, X, Info, CheckCircle2, AlertCircle, History, Shield } from 'lucide-react';
 
 const AssignmentCalendar: React.FC = () => {
-  // Reset ke bulan berjalan (Bukan lagi Mei 2026)
   const now = new Date();
   const [currentDate, setCurrentDate] = useState(new Date(now.getFullYear(), now.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -37,12 +37,11 @@ const AssignmentCalendar: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-20 animate-fade-in max-w-7xl mx-auto">
-      {/* Header Info */}
       <div className="bg-slate-900 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden flex flex-col md:flex-row justify-between items-center gap-8">
          <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none"><Users size={160}/></div>
          <div className="relative z-10">
             <h1 className="text-4xl font-black italic tracking-tighter uppercase">Peta Kendali Operasional</h1>
-            <p className="text-slate-400 text-sm mt-2 max-w-xl font-medium uppercase tracking-widest italic opacity-70">Monitor Beban Kerja & Ketersediaan SDM TA {currentDate.getFullYear()}</p>
+            <p className="text-slate-400 text-sm mt-2 max-w-xl font-medium uppercase tracking-widest italic opacity-70">Monitor & Rekam Jejak Penugasan TA {currentDate.getFullYear()}</p>
          </div>
          <div className="flex gap-4 no-print relative z-10">
             <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="p-4 bg-white/10 hover:bg-white/20 rounded-2xl transition-all border border-white/10"><ChevronLeft size={24}/></button>
@@ -51,13 +50,12 @@ const AssignmentCalendar: React.FC = () => {
          </div>
       </div>
 
-      {/* Legend & Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
          {[
            { label: 'Kapasitas Sehat', color: 'bg-emerald-500', icon: CheckCircle2, desc: 'Personil standby tersedia.' },
            { label: 'Kapasitas Penuh', color: 'bg-rose-500', icon: AlertCircle, desc: 'Seluruh personil bertugas.' },
-           { label: 'Penugasan Aktif', color: 'bg-indigo-500', icon: Briefcase, desc: 'Data tersinkron real-time.' },
-           { label: 'Audit Historis', color: 'bg-slate-400', icon: History, desc: 'Riwayat tugas masa lalu.' },
+           { label: 'Penugasan Aktif', color: 'bg-indigo-500', icon: Briefcase, desc: 'Tugas sedang berjalan.' },
+           { label: 'Audit Historis', color: 'bg-indigo-400', icon: History, desc: 'Data tersimpan selamanya.' },
          ].map((item, i) => (
            <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-5">
               <div className={`p-4 ${item.color} text-white rounded-2xl shadow-lg`}><item.icon size={20}/></div>
@@ -69,7 +67,6 @@ const AssignmentCalendar: React.FC = () => {
          ))}
       </div>
 
-      {/* Grid Kalender */}
       <div className="bg-white rounded-[3.5rem] shadow-sm border border-slate-100 overflow-hidden">
         <div className="grid grid-cols-7 bg-slate-50/50 border-b">
           {['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'].map(d => (
@@ -91,7 +88,8 @@ const AssignmentCalendar: React.FC = () => {
                cellBg = 'bg-indigo-50/30 ring-2 ring-inset ring-indigo-500/20';
             } else if (hasTasks) {
                if (isPast) {
-                  cellBg = 'bg-slate-100 border-slate-200';
+                  // Warna lebih indigo untuk masa lalu agar "terlihat" (tidak pudar)
+                  cellBg = 'bg-indigo-50/40 border-indigo-100'; 
                } else {
                   cellBg = isFull ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100';
                }
@@ -109,10 +107,10 @@ const AssignmentCalendar: React.FC = () => {
                   <div className="flex flex-col">
                     <span className={`text-xl font-black ${isToday ? 'text-indigo-600' : isPast ? 'text-slate-400' : 'text-slate-300'} group-hover:text-slate-900 transition-colors`}>{day}</span>
                     {isToday && <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest mt-0.5">Hari Ini</span>}
-                    {isPast && !isToday && <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Arsip</span>}
+                    {isPast && !isToday && <span className="text-[8px] font-black text-slate-500/50 uppercase tracking-widest mt-0.5">Arsip</span>}
                   </div>
                   {hasTasks && (
-                    <div className={`p-1.5 rounded-lg ${isPast ? 'bg-slate-400' : isFull ? 'bg-rose-500' : 'bg-emerald-500'} text-white shadow-lg ${!isPast && 'animate-pulse'}`}>
+                    <div className={`p-1.5 rounded-lg ${isPast ? 'bg-indigo-400' : isFull ? 'bg-rose-500' : 'bg-emerald-500'} text-white shadow-lg ${!isPast && 'animate-pulse'}`}>
                        {isPast ? <History size={12}/> : <Users size={12}/>}
                     </div>
                   )}
@@ -120,18 +118,18 @@ const AssignmentCalendar: React.FC = () => {
 
                 <div className="space-y-2">
                   {cellData?.bertugas && cellData.bertugas.slice(0, 2).map((t, tid) => (
-                    <div key={tid} className={`text-[9px] bg-white/80 backdrop-blur-sm border border-slate-100 p-2 rounded-xl font-black text-slate-700 truncate shadow-sm flex items-center gap-1.5 uppercase tracking-tighter ${isPast && 'opacity-60'}`}>
-                       <User size={10} className={isPast ? 'text-slate-400' : 'text-indigo-600'}/> {t.namaPegawai}
+                    <div key={tid} className={`text-[9px] bg-white/80 backdrop-blur-sm border border-slate-100 p-2 rounded-xl font-black text-slate-700 truncate shadow-sm flex items-center gap-1.5 uppercase tracking-tighter ${isPast && 'opacity-80'}`}>
+                       <User size={10} className={isPast ? 'text-indigo-400' : 'text-indigo-600'}/> {t.namaPegawai}
                     </div>
                   ))}
                   {cellData?.bertugas && cellData.bertugas.length > 2 && (
-                    <p className="text-[8px] font-black text-slate-400 text-center uppercase tracking-widest mt-2">+{cellData.bertugas.length - 2} Dokumen</p>
+                    <p className="text-[8px] font-black text-indigo-400/50 text-center uppercase tracking-widest mt-2">+{cellData.bertugas.length - 2} Dokumen</p>
                   )}
                 </div>
 
                 {hasTasks && (
                   <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                     <span className="text-[8px] font-black uppercase text-indigo-500">{isPast ? 'Lihat Riwayat' : 'Detail Tugas'}</span>
+                     <span className="text-[8px] font-black uppercase text-indigo-500">{isPast ? 'Lihat Arsip' : 'Detail Tugas'}</span>
                      <Info size={12} className="text-indigo-400"/>
                   </div>
                 )}
@@ -141,15 +139,14 @@ const AssignmentCalendar: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal Detail Tanggal */}
       {selectedDate && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-fade-in no-print">
            <div className="bg-white w-full max-w-4xl rounded-[4rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-              <div className={`p-10 ${isSelectedDatePast ? 'bg-slate-700' : 'bg-slate-900'} text-white flex justify-between items-center transition-colors`}>
+              <div className={`p-10 ${isSelectedDatePast ? 'bg-indigo-900' : 'bg-slate-900'} text-white flex justify-between items-center transition-colors`}>
                  <div>
                     <div className="flex items-center gap-3 mb-2">
-                       {isSelectedDatePast && <History size={20} className="text-indigo-400" />}
-                       <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">{isSelectedDatePast ? 'Arsip Kendali Penugasan' : 'Log Kendali Penugasan'}</p>
+                       {isSelectedDatePast && <Shield size={20} className="text-amber-400" />}
+                       <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">{isSelectedDatePast ? 'Audit Rekam Jejak Kinerja' : 'Log Kendali Penugasan'}</p>
                     </div>
                     <h3 className="text-3xl font-black tracking-tighter uppercase italic">{new Date(selectedDate).toLocaleDateString('id-ID', { dateStyle: 'full' })}</h3>
                  </div>
@@ -160,7 +157,7 @@ const AssignmentCalendar: React.FC = () => {
                  <div className="space-y-8">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                        <h4 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-3">
-                          <Briefcase className={isSelectedDatePast ? 'text-slate-500' : 'text-rose-500'} size={24}/> {isSelectedDatePast ? 'Riwayat Bertugas' : 'Sedang Bertugas'} ({selectedData?.bertugas.length})
+                          <Briefcase className={isSelectedDatePast ? 'text-indigo-500' : 'text-rose-500'} size={24}/> {isSelectedDatePast ? 'Riwayat Penugasan' : 'Sedang Bertugas'} ({selectedData?.bertugas.length})
                        </h4>
                     </div>
                     <div className="space-y-4">
@@ -178,13 +175,13 @@ const AssignmentCalendar: React.FC = () => {
                                </div>
                                {t.laporanStatus === 'Sudah Upload' && (
                                   <div className="flex items-center gap-3 text-[10px] font-black text-emerald-600 uppercase italic mt-2">
-                                     <CheckCircle2 size={14}/> Laporan Tuntas
+                                     <CheckCircle2 size={14}/> Laporan Tuntas & Terarsip
                                   </div>
                                )}
                             </div>
                          </div>
                        )) : (
-                         <div className="py-20 text-center text-slate-300 font-black italic uppercase tracking-widest">Tidak ada record penugasan.</div>
+                         <div className="py-20 text-center text-slate-300 font-black italic uppercase tracking-widest">Tidak ada record penugasan di tanggal ini.</div>
                        )}
                     </div>
                  </div>
@@ -192,7 +189,7 @@ const AssignmentCalendar: React.FC = () => {
                  <div className="space-y-8">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                        <h4 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-3">
-                          <CheckCircle2 className="text-emerald-500" size={24}/> {isSelectedDatePast ? 'Tersedia di Hari tsb' : 'Pegawai Standby'} ({selectedData?.standby.length})
+                          <CheckCircle2 className="text-emerald-500" size={24}/> {isSelectedDatePast ? 'Personel Standby (Histori)' : 'Pegawai Standby'} ({selectedData?.standby.length})
                        </h4>
                     </div>
                     <div className="grid grid-cols-1 gap-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
@@ -212,7 +209,7 @@ const AssignmentCalendar: React.FC = () => {
                  </div>
               </div>
               <div className="p-8 bg-slate-50 border-t border-slate-100 text-center">
-                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] italic">Database Kinerja BPMP Maluku Utara • TA {currentDate.getFullYear()}</p>
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] italic">Aplikasi Si-Kertas menjamin integritas data historis untuk audit kinerja.</p>
               </div>
            </div>
         </div>

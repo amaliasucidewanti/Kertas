@@ -1,13 +1,36 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Pegawai, Role } from '../types';
 import { dataService } from '../services/dataService';
-import { RefreshCw, Search, ShieldCheck, History, AlertCircle, UserPlus, X, Save, Database, Download, Trash2 } from 'lucide-react';
+import { 
+  RefreshCw, 
+  Search, 
+  ShieldCheck, 
+  History, 
+  AlertCircle, 
+  UserPlus, 
+  X, 
+  Save, 
+  Database, 
+  Download, 
+  Trash2, 
+  Github, 
+  CloudSync, 
+  CheckCircle2, 
+  Lock,
+  ArrowRight
+} from 'lucide-react';
 
 const ManageAccounts: React.FC<{ user: Pegawai }> = ({ user }) => {
   const [search, setSearch] = useState('');
   const [employees, setEmployees] = useState(dataService.getPegawai());
   const [showAddModal, setShowAddModal] = useState(false);
+  
+  // GitHub Integration States
+  const [ghConfig, setGhConfig] = useState(dataService.getGithubConfig());
+  const [isSyncingGH, setIsSyncingGH] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<{success: boolean, message: string} | null>(null);
+
   const [newPegawai, setNewPegawai] = useState({
     nama: '',
     nip: '',
@@ -48,6 +71,28 @@ const ManageAccounts: React.FC<{ user: Pegawai }> = ({ user }) => {
     alert('Akun Pegawai baru berhasil dibuat!');
   };
 
+  const handleSaveGHConfig = () => {
+    dataService.saveGithubConfig(ghConfig);
+    alert('Konfigurasi GitHub disimpan secara lokal.');
+  };
+
+  const handleManualGHSync = async () => {
+    if (!ghConfig.token || !ghConfig.repo) {
+      alert("Mohon isi Token dan Repository terlebih dahulu.");
+      return;
+    }
+    setIsSyncingGH(true);
+    setSyncStatus(null);
+    try {
+      await dataService.pushToGithub();
+      setSyncStatus({ success: true, message: `Berhasil sinkron pada ${new Date().toLocaleTimeString()}` });
+    } catch (e) {
+      setSyncStatus({ success: false, message: e instanceof Error ? e.message : "Gagal Sinkron" });
+    } finally {
+      setIsSyncingGH(false);
+    }
+  };
+
   const filtered = employees.filter(e => {
     const matchesSearch = e.nama.toLowerCase().includes(search.toLowerCase()) || e.nip.includes(search);
     let matchesAuth = true;
@@ -82,33 +127,122 @@ const ManageAccounts: React.FC<{ user: Pegawai }> = ({ user }) => {
               placeholder="Cari NIP atau Nama..." 
               className="w-full pl-12 pr-6 py-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold shadow-sm outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
               value={search}
-              // Fixed: replaced setSearchTerm with correct setSearch function
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
         </div>
       </div>
 
+      {/* GITHUB AUTO-SYNC WIDGET (ADMIN ONLY) */}
+      <div className="bg-slate-900 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden group">
+         <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform"><Github size={140} /></div>
+         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <div>
+               <h3 className="text-xs font-black uppercase tracking-[0.3em] text-indigo-400 mb-6 flex items-center gap-2">
+                  <CloudSync size={16} /> GitHub Data Bridge (Auto-Sync)
+               </h3>
+               <p className="text-xs text-slate-400 font-bold mb-8 leading-relaxed italic">
+                  Hubungkan database lokal SI-KERTAS ke repositori GitHub untuk sinkronisasi otomatis. Ini memastikan data laporan tersedia di manapun Anda login.
+               </p>
+               
+               <div className="space-y-4">
+                  <div className="space-y-2">
+                     <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                        <Lock size={10} /> Personal Access Token (PAT)
+                     </label>
+                     <input 
+                        type="password" 
+                        placeholder="ghp_xxxxxxxxxxxx"
+                        value={ghConfig.token}
+                        onChange={e => setGhConfig({...ghConfig, token: e.target.value})}
+                        className="w-full bg-white/5 border border-white/10 p-3 rounded-xl text-xs font-mono outline-none focus:border-indigo-500 transition-all"
+                     />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-500">Repository (user/repo)</label>
+                        <input 
+                           type="text" 
+                           placeholder="bpmp-malut/sikertas-db"
+                           value={ghConfig.repo}
+                           onChange={e => setGhConfig({...ghConfig, repo: e.target.value})}
+                           className="w-full bg-white/5 border border-white/10 p-3 rounded-xl text-xs outline-none focus:border-indigo-500 transition-all"
+                        />
+                     </div>
+                     <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-500">Target Path (json)</label>
+                        <input 
+                           type="text" 
+                           placeholder="backup.json"
+                           value={ghConfig.path}
+                           onChange={e => setGhConfig({...ghConfig, path: e.target.value})}
+                           className="w-full bg-white/5 border border-white/10 p-3 rounded-xl text-xs outline-none focus:border-indigo-500 transition-all"
+                        />
+                     </div>
+                  </div>
+               </div>
+
+               <div className="mt-8 flex gap-4">
+                  <button onClick={handleSaveGHConfig} className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">
+                     Simpan Konfigurasi
+                  </button>
+                  <button 
+                     onClick={handleManualGHSync}
+                     disabled={isSyncingGH}
+                     className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-600/20 flex items-center gap-2"
+                  >
+                     {isSyncingGH ? <RefreshCw size={14} className="animate-spin" /> : <CloudSync size={14} />}
+                     {isSyncingGH ? 'Sinkronisasi...' : 'Sync ke GitHub Sekarang'}
+                  </button>
+               </div>
+            </div>
+
+            <div className="flex flex-col justify-center">
+               <div className="bg-white/5 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/10 space-y-6">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status Sinkronisasi Terakhir</h4>
+                  {syncStatus ? (
+                     <div className={`flex items-start gap-4 p-5 rounded-3xl border ${syncStatus.success ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
+                        {syncStatus.success ? <CheckCircle2 size={24} /> : <AlertCircle size={24} />}
+                        <div>
+                           <p className="text-[10px] font-black uppercase tracking-widest">{syncStatus.success ? 'Berhasil' : 'Gagal'}</p>
+                           <p className="text-xs font-bold mt-1 leading-relaxed italic">{syncStatus.message}</p>
+                        </div>
+                     </div>
+                  ) : (
+                     <div className="flex items-center gap-4 p-5 rounded-3xl bg-white/5 border border-white/5 text-slate-500 italic text-xs">
+                        <History size={20} /> Belum ada riwayat sinkronisasi cloud.
+                     </div>
+                  )}
+                  <div className="pt-4 border-t border-white/5 flex flex-col gap-3">
+                     <p className="text-[9px] font-medium text-slate-500 leading-relaxed italic">
+                        * Token hanya tersimpan di browser ini. Database yang di-push berisi seluruh riwayat penugasan dan laporan fisik terenkripsi.
+                     </p>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+
       {/* WIDGET PEMELIHARAAN DATA (ADMIN ONLY) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 no-print">
-         <div className="bg-slate-900 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform"><Database size={120} /></div>
-            <h3 className="text-xs font-black uppercase tracking-widest text-indigo-400 mb-6 flex items-center gap-2">
+         <div className="bg-white rounded-[3rem] p-10 border border-slate-100 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform"><Database size={120} /></div>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
                <ShieldCheck size={14} /> Pemeliharaan Database Lokal
             </h3>
-            <p className="text-xs text-slate-400 font-bold mb-8 leading-relaxed italic">
-               Gunakan fitur ini untuk mencadangkan seluruh data laporan dan penugasan yang tersimpan di browser Anda ke dalam file fisik.
+            <p className="text-xs text-slate-500 font-bold mb-8 leading-relaxed italic">
+               Gunakan fitur ini untuk mencadangkan seluruh data laporan dan penugasan yang tersimpan di browser Anda ke dalam file fisik (Offline Backup).
             </p>
             <div className="flex flex-wrap gap-4">
                <button 
                 onClick={() => dataService.exportDatabase()}
-                className="flex items-center gap-3 bg-white/10 hover:bg-white/20 border border-white/10 px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+                className="flex items-center gap-3 bg-slate-100 hover:bg-slate-200 border border-slate-100 px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
                >
                   <Download size={14} /> Ekspor Backup JSON
                </button>
                <button 
                 onClick={() => dataService.clearDatabase()}
-                className="flex items-center gap-3 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/10 text-rose-400 px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+                className="flex items-center gap-3 bg-rose-50 hover:bg-rose-100 border border-rose-100 text-rose-600 px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
                >
                   <Trash2 size={14} /> Reset Cache Lokal
                </button>
@@ -118,7 +252,7 @@ const ManageAccounts: React.FC<{ user: Pegawai }> = ({ user }) => {
          <div className="bg-indigo-50 rounded-[3rem] p-10 border border-indigo-100 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8 opacity-5"><RefreshCw size={120} /></div>
             <h3 className="text-xs font-black uppercase tracking-widest text-indigo-600 mb-6 flex items-center gap-2">
-               <History size={14} /> Status Sinkronisasi
+               <History size={14} /> Status Sinkronisasi Spreadsheet
             </h3>
             <div className="space-y-4">
                <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-indigo-100">
@@ -200,7 +334,7 @@ const ManageAccounts: React.FC<{ user: Pegawai }> = ({ user }) => {
 
       {/* MODAL TAMBAH PEGAWAI */}
       {showAddModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-fade-in">
           <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col">
             <div className="p-8 bg-slate-900 text-white flex justify-between items-center">
               <div>
@@ -293,5 +427,4 @@ const ManageAccounts: React.FC<{ user: Pegawai }> = ({ user }) => {
   );
 };
 
-// Added missing default export
 export default ManageAccounts;

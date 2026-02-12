@@ -13,7 +13,8 @@ import {
   FileText,
   PieChart as PieIcon,
   CheckCircle2,
-  Calendar
+  Calendar,
+  ShieldCheck
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 // @ts-ignore
@@ -132,6 +133,9 @@ const Dashboard: React.FC<{ user: Pegawai }> = ({ user }) => {
       <div className="bg-slate-900 rounded-[3rem] p-10 text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl overflow-hidden relative border border-white/5">
          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
          <div className="relative z-10 flex-1 text-center md:text-left">
+            <div className="inline-flex items-center gap-2 bg-emerald-500/20 border border-emerald-500/30 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest text-emerald-400 mb-6 backdrop-blur-md">
+               <ShieldCheck size={10}/> SI-KERTAS Production Ready
+            </div>
             <h1 className="text-4xl font-black tracking-tighter leading-tight mb-4 italic uppercase">
                HALO, {user.nama.split(' ')[0]}!<br/>{user.role === Role.PEGAWAI ? 'PROGRES KERJA ANDA.' : 'MONITORING OPERASIONAL.'}
             </h1>
