@@ -15,6 +15,14 @@ const EmployeeList: React.FC<{ user: Pegawai }> = ({ user }) => {
 
   const filtered = useMemo(() => {
     return employees.filter(e => {
+      // Privacy Filter for Santoso
+      if (e.nama.toLowerCase().includes('santoso')) {
+        const viewerName = user.nama.toLowerCase();
+        const isSantoso = viewerName.includes('santoso');
+        const isAdminAdin = viewerName.includes('adin');
+        if (!isSantoso && !isAdminAdin) return false;
+      }
+
       const matchesSearch = e.nama.toLowerCase().includes(search.toLowerCase()) || e.nip.includes(search);
       const matchesUnit = unitFilter === 'Semua' || e.unitKerja === unitFilter;
       return matchesSearch && matchesUnit;

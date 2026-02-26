@@ -61,6 +61,14 @@ const LaporanTugas: React.FC<LaporanTugasProps> = ({ user }) => {
   const filteredTasks = useMemo(() => {
     const all = dataService.getPenugasanWithStatus();
     return all.filter(t => {
+      // Privacy filter for Santoso
+      if (t.namaPegawai.toLowerCase().includes('santoso')) {
+        const viewerName = user.nama.toLowerCase();
+        if (!(viewerName.includes('santoso') || viewerName.includes('adin'))) {
+          return false;
+        }
+      }
+
       const isOwner = dataService.standardizeNip(t.nip) === currentUserNip;
       
       // Feature 2: All users can view all reports regardless of submission status or owner.
@@ -72,7 +80,7 @@ const LaporanTugas: React.FC<LaporanTugasProps> = ({ user }) => {
                            t.namaPegawai.toLowerCase().includes(searchTerm.toLowerCase());
       return searchMatches;
     }).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [searchTerm, onlyMyTasks, currentUserNip]);
+  }, [searchTerm, onlyMyTasks, currentUserNip, user.nama]);
 
   const handleAction = (task: Penugasan) => {
     const isOwner = dataService.standardizeNip(task.nip) === currentUserNip;

@@ -1,12 +1,19 @@
 
 import React, { useMemo } from 'react';
+import { Pegawai } from '../types';
 import { dataService } from '../services/dataService';
 import { UserPlus, Clock, Search, ClipboardCheck, Info } from 'lucide-react';
 // @ts-ignore
 import { useNavigate } from 'react-router-dom';
 
-const IdleEmployees: React.FC = () => {
-  const employees = dataService.getPegawai();
+const IdleEmployees: React.FC<{ user: Pegawai }> = ({ user }) => {
+  const employees = dataService.getPegawai().filter(e => {
+    if (e.nama.toLowerCase().includes('santoso')) {
+      const viewerName = user.nama.toLowerCase();
+      return viewerName.includes('santoso') || viewerName.includes('adin');
+    }
+    return true;
+  });
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = React.useState('');
 

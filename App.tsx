@@ -87,7 +87,7 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<Dashboard user={auth.user!} />} />
             <Route path="/pegawai" element={<EmployeeList user={auth.user!} />} />
-            <Route path="/kalender" element={<AssignmentCalendar />} />
+            <Route path="/kalender" element={<AssignmentCalendar user={auth.user!} />} />
             <Route path="/discipline" element={<DisciplineView user={auth.user!} />} />
             <Route path="/program-2026" element={<ProgramKegiatan2026 user={auth.user!} />} />
             <Route path="/manual" element={<SystemManual />} />
@@ -96,7 +96,7 @@ const App: React.FC = () => {
             
             {(auth.user?.role === Role.ADMIN_TIM || auth.user?.role === Role.SUPER_ADMIN) && (
               <>
-                <Route path="/surat-tugas/baru" element={<AssignmentWizard />} />
+                <Route path="/surat-tugas/baru" element={<AssignmentWizard user={auth.user!} />} />
                 <Route path="/surat-tugas/edit" element={<SuratTugasForm />} />
                 <Route path="/laporan" element={<Reports />} />
                 <Route path="/accounts" element={<ManageAccounts user={auth.user!} />} />

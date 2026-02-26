@@ -10,7 +10,13 @@ const DisciplineView: React.FC<{ user: Pegawai }> = ({ user }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterUnit, setFilterUnit] = useState('Semua');
 
-  const allEmployees = dataService.getPegawai();
+  const allEmployees = dataService.getPegawai().filter(e => {
+    if (e.nama.toLowerCase().includes('santoso')) {
+      const viewerName = user.nama.toLowerCase();
+      return viewerName.includes('santoso') || viewerName.includes('adin');
+    }
+    return true;
+  });
 
   const discipline = selectedNip ? dataService.getKedisiplinan(selectedNip) : null;
   const empInfo = selectedNip ? allEmployees.find(e => e.nip === selectedNip) : null;

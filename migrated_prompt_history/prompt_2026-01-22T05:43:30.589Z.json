@@ -1,0 +1,160 @@
+[
+  {
+    "id": 28,
+    "author": "user",
+    "payload": {
+      "type": "text",
+      "text": "(Sistem Kerja Tuntas BPMP)\n\nBertindaklah sebagai analis sistem dan pengembang aplikasi pemerintahan yang berpengalaman membangun aplikasi internal instansi pemerintah dengan karakter resmi, rapi, sederhana, dan akuntabel.\n\nRancang aplikasi web bernama Si-Kertas (Sistem Kerja Tuntas) yang dapat diakses oleh seluruh pegawai BPMP, dengan pembagian peran Super Admin, Admin Tim Kerja, dan Pegawai.\n\nAplikasi ini bertujuan memastikan kejelasan penugasan, transparansi pelaksanaan tugas, ketuntasan laporan, dan pengendalian kedisiplinan pegawai.\n\n🔐 ARSITEKTUR AKSES PENGGUNA\nPeran Pengguna\n\nSuper Admin\n\nAkses penuh seluruh data\n\nMengelola akun seluruh pegawai\n\nReset password semua pegawai\n\nMelihat seluruh laporan\n\nAdmin Tim Kerja\n\nMengelola pegawai dalam unit kerjanya\n\nReset password pegawai unitnya\n\nMembuat dan mengelola surat tugas unitnya\n\nPegawai\n\nMelihat dashboard pribadi\n\nMenerima surat tugas\n\nMengisi, mengedit, dan menghapus laporan tugas sendiri\n\n📊 SUMBER DATA (WAJIB DIIKUTI TANPA MENGUBAH STRUKTUR)\n1️⃣ MASTER DATA PEGAWAI\n\nSpreadsheet:\nhttps://docs.google.com/spreadsheets/d/1iB7Tdda08wD1u5IwiKUEjkfI2JFzw4wjTI_bGRhivVc/edit\n\nSheet: DATA_PEGAWAI\n\nDigunakan untuk:\n\nIdentitas pegawai\n\nJabatan\n\nUnit kerja\n\nReferensi akun login\n\n2️⃣ DATA SURAT TUGAS & PENUGASAN\n\nSpreadsheet:\nhttps://docs.google.com/spreadsheets/d/1efjMOHknnC4RaYf9qTxPXGoLHSv5HelSMPYBqDi_y6s/edit\n\nSheet: Jadwal Tugas\n\nDigunakan untuk:\n\nSurat tugas\n\nNama kegiatan\n\nWaktu pelaksanaan tugas\n\nJenis penugasan\n\nBiaya\n\nStatus tugas\n\nKalender tugas\n\nDashboard & laporan\n\n3️⃣ DATA KEDISIPLINAN\n\nSpreadsheet:\nhttps://docs.google.com/spreadsheets/d/18nd4pkwihE5_XXFCHqYHISARaktJeu8PXpS1DERq6OQ/edit\n\nSheet: Paste Marni\n\nDigunakan untuk:\n\nKehadiran\n\nApel\n\nLog harian\n\nPelaporan tugas\n\nNilai akhir kedisiplinan\n\n🟦 HALAMAN 1 — LOGIN\n\nTampilan:\n\nLogo BPMP\n\nJudul: SI-KERTAS\n\nSubjudul: Setiap Pegawai Jelas Tugasnya\n\nForm:\n\nUsername\n\nPassword\n\nTombol Masuk\n\nKetentuan:\n\nPassword awal semua pegawai: 12345\n\nSaat login pertama → wajib ganti password\n\nSetelah login berhasil → masuk Dashboard\n\n🟦 HALAMAN RESET PASSWORD (SUPER ADMIN & ADMIN)\n\nFungsi:\n\nReset password pegawai menjadi 12345\n\nStatus akun menjadi Wajib Ganti Password\n\nHak Akses:\n\nSuper Admin → semua pegawai\n\nAdmin → hanya unit kerjanya\n\nTabel:\n\nNama\n\nNIP\n\nJabatan\n\nUnit Kerja\n\nStatus Akun\n\nAksi Reset Password\n\nAudit:\n\nMencatat siapa yang mereset\n\nWaktu reset\n\nTidak dapat dihapus\n\n🟦 HALAMAN 2 — DASHBOARD UTAMA (SEMUA PEGAWAI)\nRingkasan Cepat (Card)\n\nPegawai Bertugas (jumlah)\n\nPegawai Tidak Bertugas (jumlah)\n\nSurat Tugas Aktif (jumlah)\n\nRata-rata Kedisiplinan Pegawai (%)\n\nFilter Global\n\nBulan\n\nTahun\n\nUnit Kerja\n\nNama Pegawai (pencarian)\n\nSemua komponen dashboard wajib menyesuaikan filter secara real-time.\n\nNotifikasi Pegawai\n\nSetiap pegawai menerima notifikasi:\n\nSurat tugas baru\n\nSurat tugas akan dimulai\n\nSurat tugas akan berakhir\n\nLaporan belum diisi\n\nLaporan mendekati batas waktu\n\nNotifikasi dapat diklik dan mengarah ke halaman terkait.\n\nTabel Rekap Pelaksanaan Tugas Pegawai\n\nDitampilkan langsung di dashboard.\n\nKolom:\n\nNama Pegawai\n\nNama Kegiatan\n\nWaktu Pelaksanaan Tugas\n\nStatus Pegawai:\n\nBertugas\n\nAkan Selesai\n\nTidak Bertugas\n\nStatus menggunakan indikator warna.\n\n🟦 HALAMAN 3 — DATA PEGAWAI\n\nTabel:\n\nNama\n\nNIP\n\nJabatan\n\nUnit Kerja\n\nStatus Pegawai\n\nAksi:\n\nDetail Pegawai\n\nKalender Tugas Pegawai\n\n🟦 HALAMAN 4 — KALENDER TUGAS\n\nTampilan kalender bulanan.\n\nKode warna:\n\nHijau → Bertugas\n\nKuning → Akan selesai\n\nMerah → Tidak bertugas\n\nInteraksi:\n\nKlik tanggal → daftar pegawai tidak bertugas\n\nKlik nama → detail pegawai\n\n🟦 HALAMAN 5 — PEGAWAI TIDAK BERTUGAS\n\nTabel:\n\nCheckbox\n\nNama\n\nJabatan\n\nLama tidak bertugas (hari)\n\nTombol utama:\n👉 BUAT SURAT TUGAS\n\n🟦 HALAMAN 6 — FORM SURAT TUGAS\n\nTerisi otomatis:\n\nNama Pegawai\n\nNIP\n\nJabatan\n\nDiisi Admin:\n\nNomor Surat\n\nDasar Penugasan\n\nNama Kegiatan\n\nUraian Tugas\n\nLokasi\n\nTanggal Mulai\n\nTanggal Selesai\n\nJenis Penugasan\n\nBiaya\n\nPenandatangan\n\nTombol:\n\nPreview Surat\n\nSimpan\n\n🟦 HALAMAN 7 — PREVIEW SURAT TUGAS (PDF)\n\nIsi:\n\nKop instansi\n\nJudul: SURAT TUGAS\n\nIdentitas pegawai\n\nUraian penugasan\n\nWaktu tugas\n\nTanda tangan pejabat\n\nAksi:\n\nEdit\n\nPrint\n\nUnduh PDF\n\nSetelah disimpan:\n\nStatus pegawai → Bertugas\n\nKalender otomatis terisi\n\nMasuk arsip digital\n\n🟦 HALAMAN 8 — KEDISIPLINAN\n\nKomponen:\n\nKehadiran (25%)\n\nApel (15%)\n\nLog Harian (20%)\n\nPelaporan Tugas (40%)\n\nMenampilkan:\n\nNilai per komponen\n\nNilai akhir\n\nDetail per pegawai\n\n🟦 HALAMAN 9 — LAPORAN\n\nAkses:\n\nSuper Admin & Admin\n\nPegawai hanya laporan miliknya\n\nJenis laporan:\n\nLaporan Bulanan Pegawai Bertugas\n\nRekap Surat Tugas\n\nRekap Kedisiplinan\n\nKolom tambahan laporan:\n\nJenis Penugasan\n\nBiaya\n\nFitur:\n\nPreview PDF\n\nPrint\n\nUnduh PDF\n\nPegawai dapat:\n\nMengedit laporan sendiri\n\nMenghapus laporan sendiri\n\n🎯 KARAKTER APLIKASI\n\nSi-Kertas harus:\n\nResmi\n\nRapi\n\nTidak rumit\n\nKhas instansi pemerintah\n\nFokus pada akuntabilitas & ketuntasan kerja",
+      "files": [],
+      "fileUploads": [],
+      "cMarkNode": {}
+    },
+    "createdTimestamp": {
+      "seconds": 1769059632,
+      "nanos": 336000000
+    }
+  },
+  {
+    "id": 29,
+    "author": "model",
+    "payload": {
+      "type": "thinking",
+      "text": "**Designing Si-Kertas's Aesthetics**\n\nI'm currently focused on the visual identity of \"Si-Kertas.\" I'm prioritizing a clean, professional aesthetic fitting for a government institution like BPMP. The goal is to reflect efficiency and a straightforward user experience through a neat, uncluttered design. I aim for an official government style.\n\n\n**Refining Aesthetic & Functionality**\n\nI'm now integrating pastel colors into the official look, aiming for accessibility and mobile responsiveness. The main data tables (`DATA_PEGAWAI`, `Jadwal Tugas`, `Paste Marni`) are taking shape. User flows are being mapped out, including login (with forced password reset), dashboard navigation, and role-based access control (Super Admin, Admin, Pegawai). The interface design employs React, Tailwind CSS, and Lucide Icons.\n\n\n**Detailing Implementation Steps**\n\nI'm now detailing the implementation steps and have listed out the key files and their responsibilities. I'm focusing on structuring `index.html`, defining the types for data structures in `types.ts`, and mocking data in `services/dataService.ts`. I'm using `App.tsx` for routing and authentication, `Layout.tsx` for the general layout, and individual pages for various features, like login, password changes, dashboard, employee lists, calendar, and task management, including a report feature. Finally, I'm setting an Indigo/Slate theme.\n\n\n",
+      "cMarkNode": {}
+    },
+    "createdTimestamp": {
+      "seconds": 1769059632,
+      "nanos": 336000000
+    },
+    "doneTimestamp": {
+      "seconds": 1769059648,
+      "nanos": 232000000
+    }
+  },
+  {
+    "id": 30,
+    "author": "model",
+    "payload": {
+      "type": "generationTable",
+      "entries": [
+        {
+          "path": "types.ts",
+          "generationType": 1,
+          "isDone": true,
+          "description": "Update types to include password change status and audit logs for password resets.",
+          "diffs": [
+            {
+              "target": "",
+              "replacement": "\nexport enum Role {\n  SUPER_ADMIN = 'Super Admin',\n  ADMIN_TIM = 'Admin Tim Kerja',\n  PEGAWAI = 'Pegawai'\n}\n\nexport interface Pegawai {\n  id: string;\n  nama: string;\n  nip: string;\n  jabatan: string;\n  unitKerja: string;\n  role: Role;\n  username: string;\n  passwordChangeRequired: boolean;\n  lastPasswordResetBy?: string;\n  lastPasswordResetAt?: string;\n}\n\nexport interface Penugasan {\n  id: string;\n  namaPegawai: string;\n  namaKegiatan: string;\n  tanggalMulai: string;\n  tanggalSelesai: string;\n  jenisPenugasan: string;\n  biaya: number;\n  statusTugas: 'Draft' | 'Aktif' | 'Selesai' | 'Perlu Perbaikan';\n  nomorSurat?: string;\n  dasarPenugasan?: string;\n  uraianTugas?: string;\n  lokasi?: string;\n  penandatangan?: string;\n}\n\nexport interface Kedisiplinan {\n  nip: string;\n  kehadiran: number; // 25%\n  apel: number;      // 15%\n  logHarian: number; // 20%\n  pelaporan: number; // 40%\n  nilaiAkhir: number;\n}\n\nexport interface AuthState {\n  user: Pegawai | null;\n  isLoggedIn: boolean;\n}\n"
+            }
+          ]
+        },
+        {
+          "path": "services/dataService.ts",
+          "generationType": 1,
+          "isDone": true,
+          "description": "Add methods for resetting passwords and auditing.",
+          "diffs": [
+            {
+              "target": "",
+              "replacement": "\nimport { Role, Pegawai, Penugasan, Kedisiplinan } from '../types';\n\n// Initial Mock Data reflecting the requested spreadsheet structures\nlet MOCK_PEGAWAI: Pegawai[] = [\n  { id: '1', nama: 'Budi Santoso', nip: '198501012010011001', jabatan: 'Analis Kebijakan', unitKerja: 'Tim Kerja 1', role: Role.SUPER_ADMIN, username: 'budi', passwordChangeRequired: false },\n  { id: '2', nama: 'Siti Aminah', nip: '199005122015022001', jabatan: 'Pengelola Data', unitKerja: 'Tim Kerja 2', role: Role.ADMIN_TIM, username: 'siti', passwordChangeRequired: false },\n  { id: '3', nama: 'Iwan Fals', nip: '197509092005011002', jabatan: 'Pranata Komputer', unitKerja: 'Tim Kerja 1', role: Role.PEGAWAI, username: 'iwan', passwordChangeRequired: false },\n  { id: '4', nama: 'Ani Yudhoyono', nip: '198001012008012003', jabatan: 'Arsiparis', unitKerja: 'Tim Kerja 3', role: Role.PEGAWAI, username: 'ani', passwordChangeRequired: false },\n];\n\nconst MOCK_PENUGASAN: Penugasan[] = [\n  { \n    id: 'T1', \n    namaPegawai: 'Budi Santoso', \n    namaKegiatan: 'Koordinasi Wilayah A', \n    tanggalMulai: '2024-05-01', \n    tanggalSelesai: '2024-05-05', \n    jenisPenugasan: 'Perjalanan Dinas', \n    biaya: 2500000, \n    statusTugas: 'Aktif',\n    nomorSurat: 'ST/001/BPMP/2024'\n  },\n  { \n    id: 'T2', \n    namaPegawai: 'Siti Aminah', \n    namaKegiatan: 'Workshop Penulisan', \n    tanggalMulai: '2024-05-10', \n    tanggalSelesai: '2024-05-12', \n    jenisPenugasan: 'Diklat', \n    biaya: 1000000, \n    statusTugas: 'Aktif',\n    nomorSurat: 'ST/002/BPMP/2024'\n  }\n];\n\nconst MOCK_KEDISIPLINAN: Kedisiplinan[] = [\n  { nip: '198501012010011001', kehadiran: 95, apel: 100, logHarian: 90, pelaporan: 85, nilaiAkhir: 91.25 },\n  { nip: '199005122015022001', kehadiran: 80, apel: 80, logHarian: 85, pelaporan: 90, nilaiAkhir: 84.75 },\n  { nip: '197509092005011002', kehadiran: 75, apel: 90, logHarian: 80, pelaporan: 70, nilaiAkhir: 76.25 },\n];\n\nexport const dataService = {\n  getPegawai: () => MOCK_PEGAWAI,\n  getPenugasan: () => MOCK_PENUGASAN,\n  getKedisiplinan: (nip?: string) => nip ? MOCK_KEDISIPLINAN.find(k => k.nip === nip) : MOCK_KEDISIPLINAN,\n  \n  isBertugas: (namaPegawai: string, date: string = new Date().toISOString().split('T')[0]) => {\n    return MOCK_PENUGASAN.some(p => \n      p.namaPegawai === namaPegawai && \n      date >= p.tanggalMulai && \n      date <= p.tanggalSelesai &&\n      p.statusTugas === 'Aktif'\n    );\n  },\n\n  getIdleDays: (namaPegawai: string) => {\n    const activeTasks = MOCK_PENUGASAN.filter(p => p.namaPegawai === namaPegawai && p.statusTugas === 'Aktif');\n    if (activeTasks.length > 0) return 0;\n    \n    const finishedTasks = MOCK_PENUGASAN.filter(p => p.namaPegawai === namaPegawai && p.statusTugas === 'Selesai')\n      .sort((a, b) => b.tanggalSelesai.localeCompare(a.tanggalSelesai));\n    \n    if (finishedTasks.length === 0) return 30;\n    const lastDate = new Date(finishedTasks[0].tanggalSelesai);\n    const diff = Math.floor((new Date().getTime() - lastDate.getTime()) / (1000 * 3600 * 24));\n    return diff > 0 ? diff : 0;\n  },\n\n  resetPassword: (pegawaiId: string, adminNama: string) => {\n    MOCK_PEGAWAI = MOCK_PEGAWAI.map(p => {\n      if (p.id === pegawaiId) {\n        return {\n          ...p,\n          passwordChangeRequired: true,\n          lastPasswordResetBy: adminNama,\n          lastPasswordResetAt: new Date().toLocaleString('id-ID')\n        };\n      }\n      return p;\n    });\n    return true;\n  }\n};\n"
+            }
+          ]
+        },
+        {
+          "path": "pages/ManageAccounts.tsx",
+          "generationType": 1,
+          "isDone": true,
+          "description": "New page for Super Admin and Admin to reset employee passwords with audit trail.",
+          "diffs": [
+            {
+              "target": "",
+              "replacement": "\nimport React, { useState } from 'react';\nimport { Pegawai, Role } from '../types';\nimport { dataService } from '../services/dataService';\nimport { RefreshCw, Search, ShieldCheck, History } from 'lucide-react';\n\nconst ManageAccounts: React.FC<{ user: Pegawai }> = ({ user }) => {\n  const [search, setSearch] = useState('');\n  const [employees, setEmployees] = useState(dataService.getPegawai());\n\n  const handleReset = (empId: string) => {\n    if (window.confirm('Reset password pegawai ini menjadi \"12345\"?')) {\n      dataService.resetPassword(empId, user.nama);\n      setEmployees([...dataService.getPegawai()]);\n      alert('Password berhasil direset.');\n    }\n  };\n\n  const filtered = employees.filter(e => {\n    const matchesSearch = e.nama.toLowerCase().includes(search.toLowerCase()) || e.nip.includes(search);\n    const matchesAuth = user.role === Role.SUPER_ADMIN || e.unitKerja === user.unitKerja;\n    return matchesSearch && matchesAuth;\n  });\n\n  return (\n    <div className=\"space-y-6\">\n      <div className=\"flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4\">\n        <div>\n          <h1 className=\"text-2xl font-bold text-slate-800\">Manajemen Akun</h1>\n          <p className=\"text-slate-500 text-sm\">Kelola akses dan reset password pegawai.</p>\n        </div>\n        <div className=\"relative\">\n          <Search size={18} className=\"absolute left-3 top-2.5 text-slate-400\" />\n          <input \n            type=\"text\" \n            placeholder=\"Cari NIP atau Nama...\" \n            className=\"pl-10 pr-4 py-2 border rounded-xl text-sm w-full sm:w-64 outline-none focus:ring-2 focus:ring-indigo-500 bg-white\"\n            value={search}\n            onChange={(e) => setSearch(e.target.value)}\n          />\n        </div>\n      </div>\n\n      <div className=\"bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden\">\n        <div className=\"overflow-x-auto\">\n          <table className=\"w-full text-left\">\n            <thead>\n              <tr className=\"bg-slate-50 border-b text-[10px] font-bold text-slate-400 uppercase tracking-widest\">\n                <th className=\"px-6 py-4\">Pegawai</th>\n                <th className=\"px-6 py-4\">Unit Kerja</th>\n                <th className=\"px-6 py-4\">Status Akun</th>\n                <th className=\"px-6 py-4\">Riwayat Reset</th>\n                <th className=\"px-6 py-4\">Aksi</th>\n              </tr>\n            </thead>\n            <tbody className=\"divide-y divide-slate-50 text-sm\">\n              {filtered.map(emp => (\n                <tr key={emp.id} className=\"hover:bg-slate-50 transition-colors\">\n                  <td className=\"px-6 py-4\">\n                    <p className=\"font-bold text-slate-800\">{emp.nama}</p>\n                    <p className=\"text-xs text-slate-500\">{emp.nip}</p>\n                  </td>\n                  <td className=\"px-6 py-4 text-slate-600\">{emp.unitKerja}</td>\n                  <td className=\"px-6 py-4\">\n                    {emp.passwordChangeRequired ? (\n                      <span className=\"inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-1 rounded-full text-[10px] font-bold uppercase\">\n                        <ShieldCheck size={12} /> Wajib Ganti\n                      </span>\n                    ) : (\n                      <span className=\"inline-flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full text-[10px] font-bold uppercase\">\n                        <ShieldCheck size={12} /> Aktif\n                      </span>\n                    )}\n                  </td>\n                  <td className=\"px-6 py-4\">\n                    {emp.lastPasswordResetBy ? (\n                      <div className=\"flex items-start gap-2 text-[10px] text-slate-500\">\n                        <History size={14} className=\"mt-0.5 text-slate-400\" />\n                        <div>\n                          <p>Oleh: {emp.lastPasswordResetBy}</p>\n                          <p>{emp.lastPasswordResetAt}</p>\n                        </div>\n                      </div>\n                    ) : (\n                      <span className=\"text-slate-300 italic text-[10px]\">Belum pernah direset</span>\n                    )}\n                  </td>\n                  <td className=\"px-6 py-4\">\n                    <button \n                      onClick={() => handleReset(emp.id)}\n                      className=\"flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-bold text-xs\"\n                    >\n                      <RefreshCw size={14} /> Reset Password\n                    </button>\n                  </td>\n                </tr>\n              ))}\n            </tbody>\n          </table>\n        </div>\n      </div>\n    </div>\n  );\n};\n\nexport default ManageAccounts;\n"
+            }
+          ]
+        },
+        {
+          "path": "App.tsx",
+          "generationType": 1,
+          "isDone": true,
+          "description": "Add route for ManageAccounts.",
+          "diffs": [
+            {
+              "target": "",
+              "replacement": "\nimport React, { useState, useEffect } from 'react';\nimport { HashRouter, Routes, Route, Navigate } from 'react-router-dom';\nimport { AuthState, Pegawai, Role } from './types';\nimport Login from './pages/Login';\nimport Dashboard from './pages/Dashboard';\nimport EmployeeList from './pages/EmployeeList';\nimport AssignmentCalendar from './pages/Calendar';\nimport IdleEmployees from './pages/IdleEmployees';\nimport SuratTugasForm from './pages/SuratTugasForm';\nimport DisciplineView from './pages/Discipline';\nimport Reports from './pages/Reports';\nimport ChangePassword from './pages/ChangePassword';\nimport ManageAccounts from './pages/ManageAccounts';\nimport Layout from './components/Layout';\n\nconst App: React.FC = () => {\n  const [auth, setAuth] = useState<AuthState>({\n    user: null,\n    isLoggedIn: false\n  });\n\n  useEffect(() => {\n    const stored = localStorage.getItem('si-kertas-auth');\n    if (stored) {\n      setAuth(JSON.parse(stored));\n    }\n  }, []);\n\n  const handleLogin = (user: Pegawai) => {\n    const newState = { user, isLoggedIn: true };\n    setAuth(newState);\n    localStorage.setItem('si-kertas-auth', JSON.stringify(newState));\n  };\n\n  const handleLogout = () => {\n    setAuth({ user: null, isLoggedIn: false });\n    localStorage.removeItem('si-kertas-auth');\n  };\n\n  const handlePasswordChanged = () => {\n    if (auth.user) {\n      const updatedUser = { ...auth.user, passwordChangeRequired: false };\n      const newState = { ...auth, user: updatedUser };\n      setAuth(newState);\n      localStorage.setItem('si-kertas-auth', JSON.stringify(newState));\n    }\n  };\n\n  if (!auth.isLoggedIn) {\n    return <Login onLogin={handleLogin} />;\n  }\n\n  // Mandatory redirect for first login or after reset\n  if (auth.user?.passwordChangeRequired) {\n    return (\n      <HashRouter>\n        <Routes>\n          <Route path=\"/change-password\" element={<ChangePassword onPasswordChanged={handlePasswordChanged} forced={true} />} />\n          <Route path=\"*\" element={<Navigate to=\"/change-password\" />} />\n        </Routes>\n      </HashRouter>\n    );\n  }\n\n  return (\n    <HashRouter>\n      <Layout user={auth.user!} onLogout={handleLogout}>\n        <Routes>\n          <Route path=\"/\" element={<Dashboard user={auth.user!} />} />\n          <Route path=\"/pegawai\" element={<EmployeeList user={auth.user!} />} />\n          <Route path=\"/kalender\" element={<AssignmentCalendar />} />\n          <Route path=\"/discipline\" element={<DisciplineView user={auth.user!} />} />\n          <Route path=\"/change-password\" element={<ChangePassword onPasswordChanged={handlePasswordChanged} forced={false} />} />\n          \n          {(auth.user?.role === Role.ADMIN_TIM || auth.user?.role === Role.SUPER_ADMIN) && (\n            <>\n              <Route path=\"/idle\" element={<IdleEmployees />} />\n              <Route path=\"/surat-tugas/baru\" element={<SuratTugasForm />} />\n              <Route path=\"/laporan\" element={<Reports />} />\n              <Route path=\"/accounts\" element={<ManageAccounts user={auth.user!} />} />\n            </>\n          )}\n\n          <Route path=\"*\" element={<Navigate to=\"/\" />} />\n        </Routes>\n      </Layout>\n    </HashRouter>\n  );\n};\n\nexport default App;\n"
+            }
+          ]
+        },
+        {
+          "path": "components/Layout.tsx",
+          "generationType": 1,
+          "isDone": true,
+          "description": "Add Manage Accounts to sidebar for Admin/Super Admin.",
+          "diffs": [
+            {
+              "target": "",
+              "replacement": "\nimport React, { useState } from 'react';\nimport { Link, useLocation } from 'react-router-dom';\nimport { Pegawai, Role } from '../types';\nimport { \n  LayoutDashboard, \n  Users, \n  Calendar, \n  Clock, \n  ClipboardList, \n  FileText, \n  LogOut, \n  Menu, \n  X,\n  UserCircle,\n  KeyRound,\n  ShieldCheck\n} from 'lucide-react';\n\ninterface LayoutProps {\n  user: Pegawai;\n  onLogout: () => void;\n  children: React.ReactNode;\n}\n\nconst Layout: React.FC<LayoutProps> = ({ user, onLogout, children }) => {\n  const [isSidebarOpen, setIsSidebarOpen] = useState(true);\n  const location = useLocation();\n\n  const navItems = [\n    { name: 'Dashboard', path: '/', icon: LayoutDashboard, roles: [Role.PEGAWAI, Role.ADMIN_TIM, Role.SUPER_ADMIN] },\n    { name: 'Data Pegawai', path: '/pegawai', icon: Users, roles: [Role.PEGAWAI, Role.ADMIN_TIM, Role.SUPER_ADMIN] },\n    { name: 'Kalender Tugas', path: '/kalender', icon: Calendar, roles: [Role.PEGAWAI, Role.ADMIN_TIM, Role.SUPER_ADMIN] },\n    { name: 'Kedisiplinan', path: '/discipline', icon: Clock, roles: [Role.PEGAWAI, Role.ADMIN_TIM, Role.SUPER_ADMIN] },\n    { name: 'Pegawai Idle', path: '/idle', icon: ClipboardList, roles: [Role.ADMIN_TIM, Role.SUPER_ADMIN] },\n    { name: 'Laporan', path: '/laporan', icon: FileText, roles: [Role.ADMIN_TIM, Role.SUPER_ADMIN] },\n    { name: 'Kelola Akun', path: '/accounts', icon: ShieldCheck, roles: [Role.ADMIN_TIM, Role.SUPER_ADMIN] },\n  ];\n\n  return (\n    <div className=\"flex h-screen bg-slate-50 overflow-hidden\">\n      {/* Sidebar */}\n      <aside \n        className={`${\n          isSidebarOpen ? 'w-64' : 'w-20'\n        } bg-white shadow-xl transition-all duration-300 flex flex-col z-20`}\n      >\n        <div className=\"p-4 border-b flex items-center justify-between bg-indigo-50/50\">\n          {isSidebarOpen ? (\n            <div className=\"flex items-center space-x-2\">\n              <div className=\"w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold\">K</div>\n              <span className=\"font-bold text-slate-800 tracking-tight\">SI-KERTAS</span>\n            </div>\n          ) : (\n            <div className=\"w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold mx-auto\">K</div>\n          )}\n          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className=\"p-1 hover:bg-white rounded-md\">\n            {isSidebarOpen ? <X size={20} className=\"text-slate-500\" /> : <Menu size={20} className=\"text-slate-500\" />}\n          </button>\n        </div>\n\n        <nav className=\"flex-1 p-3 space-y-1 overflow-y-auto\">\n          {navItems.filter(item => item.roles.includes(user.role)).map((item) => {\n            const isActive = location.pathname === item.path;\n            return (\n              <Link\n                key={item.path}\n                to={item.path}\n                className={`flex items-center p-3 rounded-xl transition-colors ${\n                  isActive \n                    ? 'bg-indigo-600 text-white shadow-md' \n                    : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'\n                }`}\n              >\n                <item.icon size={22} className={`${isActive ? 'text-white' : 'text-indigo-400'}`} />\n                {isSidebarOpen && <span className=\"ml-3 font-medium text-sm\">{item.name}</span>}\n              </Link>\n            );\n          })}\n        </nav>\n\n        <div className=\"p-4 border-t bg-slate-50 space-y-1\">\n          <Link\n            to=\"/change-password\"\n            className={`flex items-center p-3 rounded-xl transition-colors ${\n              location.pathname === '/change-password'\n                ? 'bg-indigo-600 text-white'\n                : 'text-slate-600 hover:bg-indigo-50'\n            }`}\n          >\n            <KeyRound size={22} className={location.pathname === '/change-password' ? 'text-white' : 'text-indigo-400'} />\n            {isSidebarOpen && <span className=\"ml-3 font-medium text-sm\">Ganti Password</span>}\n          </Link>\n          <button\n            onClick={onLogout}\n            className=\"w-full flex items-center p-3 rounded-xl text-red-500 hover:bg-red-50 transition-colors\"\n          >\n            <LogOut size={22} />\n            {isSidebarOpen && <span className=\"ml-3 font-medium text-sm\">Keluar</span>}\n          </button>\n        </div>\n      </aside>\n\n      {/* Main Content */}\n      <main className=\"flex-1 flex flex-col overflow-hidden\">\n        <header className=\"h-16 bg-white border-b px-6 flex items-center justify-between\">\n          <h2 className=\"text-slate-800 font-semibold truncate\">\n            {navItems.find(i => i.path === location.pathname)?.name || location.pathname.substring(1).replace('-', ' ') || 'Si-Kertas'}\n          </h2>\n          <div className=\"flex items-center space-x-4\">\n             <div className=\"text-right hidden sm:block\">\n                <p className=\"text-sm font-bold text-slate-800 leading-none\">{user.nama}</p>\n                <p className=\"text-xs text-slate-500 mt-1\">{user.role}</p>\n             </div>\n             <div className=\"w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 border border-indigo-200\">\n                <UserCircle size={24} />\n             </div>\n          </div>\n        </header>\n\n        <div className=\"flex-1 overflow-y-auto p-6\">\n          {children}\n        </div>\n      </main>\n    </div>\n  );\n};\n\nexport default Layout;\n"
+            }
+          ]
+        }
+      ]
+    },
+    "createdTimestamp": {
+      "seconds": 1769059648,
+      "nanos": 233000000
+    },
+    "doneTimestamp": {
+      "seconds": 1769059650,
+      "nanos": 590000000
+    }
+  },
+  {
+    "id": 33,
+    "author": "user",
+    "payload": {
+      "type": "text",
+      "text": "bagaimana saya login. username dan passwordnya apa?",
+      "files": [],
+      "fileUploads": [],
+      "cMarkNode": {}
+    },
+    "createdTimestamp": {
+      "seconds": 1769060578,
+      "nanos": 519000000
+    }
+  },
+  {
+    "id": 34,
+    "author": "model",
+    "payload": {
+      "type": "thinking",
+      "text": "**Analyzing Login Credentials**\n\nI'm currently focused on authentication. I've located the `dataService.ts` file, which includes `MOCK_PEGAWAI`, and I see the login logic in `Login.tsx`. I noticed that all employees use `12345` as their initial password. I'm digging further to understand password resets, and how the initial password ties into data management.\n\n\n",
+      "cMarkNode": {}
+    },
+    "createdTimestamp": {
+      "seconds": 1769060578,
+      "nanos": 519000000
+    },
+    "doneTimestamp": {
+      "seconds": 1769060606,
+      "nanos": 706000000
+    }
+  },
+  {
+    "id": 35,
+    "author": "model",
+    "payload": {
+      "type": "text",
+      "text": "Untuk masuk ke aplikasi **Si-Kertas**, Anda dapat menggunakan akun simulasi yang telah dikonfigurasi di dalam sistem.\n\nSeluruh akun menggunakan **Password awal yang sama**, yaitu:\n**`12345`**\n\nBerikut adalah daftar **Username** berdasarkan peran (role) masing-masing untuk pengujian:\n\n1.  **Super Admin** (Akses Penuh)\n    *   Username: **`budi`**\n    *   Nama: Budi Santoso\n2.  **Admin Tim Kerja** (Kelola Unit & Verifikasi)\n    *   Username: **`siti`**\n    *   Nama: Siti Aminah\n3.  **Pegawai** (Lihat Tugas & Nilai Disiplin)\n    *   Username: **`iwan`** atau **`ani`**\n\n**Catatan:**\n*   Setelah login pertama kali dengan password `12345`, sistem akan secara otomatis mengarahkan Anda ke halaman **Ubah Password** (sesuai permintaan sistem kerja tuntas).\n*   Anda harus mengubah password tersebut menjadi minimal 6 karakter sebelum dapat mengakses dashboard utama.",
+      "cMarkNode": {}
+    },
+    "createdTimestamp": {
+      "seconds": 1769060606,
+      "nanos": 706000000
+    },
+    "doneTimestamp": {
+      "seconds": 1769060607,
+      "nanos": 43000000
+    }
+  }
+]

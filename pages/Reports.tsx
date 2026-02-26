@@ -47,8 +47,20 @@ const Reports: React.FC = () => {
   const [editFormData, setEditFormData] = useState<Partial<Penugasan>>({});
 
   const brandingLogo = "https://lh3.googleusercontent.com/d/17vRGmP8EH8YSyeQn4GBxoszYRsYVLE3k";
-  const allTasks = dataService.getPenugasanWithStatus();
-  const allEmployees = dataService.getPegawai();
+  const allTasks = dataService.getPenugasanWithStatus().filter(t => {
+    if (t.namaPegawai.toLowerCase().includes('santoso')) {
+      const viewerName = user?.nama?.toLowerCase() || '';
+      return viewerName.includes('santoso') || viewerName.includes('adin');
+    }
+    return true;
+  });
+  const allEmployees = dataService.getPegawai().filter(e => {
+    if (e.nama.toLowerCase().includes('santoso')) {
+      const viewerName = user?.nama?.toLowerCase() || '';
+      return viewerName.includes('santoso') || viewerName.includes('adin');
+    }
+    return true;
+  });
 
   const filteredData = useMemo(() => {
     return allTasks.filter(task => {

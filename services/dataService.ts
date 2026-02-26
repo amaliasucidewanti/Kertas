@@ -10,6 +10,10 @@ const GITHUB_CONFIG_KEY = 'si-kertas-github-cfg';
 
 const SYSTEM_USERS: Pegawai[] = [
   { id: 'sys-admin', nama: 'Administrator Utama', nip: '000000', jabatan: 'Super Admin', unitKerja: 'Pusat Data', role: Role.SUPER_ADMIN, username: 'Admin', passwordChangeRequired: false, jenisTugas: 'Luring', sumberBiaya: 'BPMP' },
+  { id: 'admin-paud', nama: 'Admin Tim PAUD', nip: '111111', jabatan: 'Admin Tim Kerja', unitKerja: 'PAUD', role: Role.ADMIN_TIM, username: 'adminpaud', passwordChangeRequired: false, jenisTugas: 'Luring', sumberBiaya: 'BPMP' },
+  { id: 'admin-sd', nama: 'Admin Tim SD', nip: '222222', jabatan: 'Admin Tim Kerja', unitKerja: 'SD', role: Role.ADMIN_TIM, username: 'adminsd', passwordChangeRequired: false, jenisTugas: 'Luring', sumberBiaya: 'BPMP' },
+  { id: 'admin-smp', nama: 'Admin Tim SMP', nip: '333333', jabatan: 'Admin Tim Kerja', unitKerja: 'SMP', role: Role.ADMIN_TIM, username: 'adminsmp', passwordChangeRequired: false, jenisTugas: 'Luring', sumberBiaya: 'BPMP' },
+  { id: 'admin-sma', nama: 'Admin Tim SMA', nip: '444444', jabatan: 'Admin Tim Kerja', unitKerja: 'SMA', role: Role.ADMIN_TIM, username: 'adminsma', passwordChangeRequired: false, jenisTugas: 'Luring', sumberBiaya: 'BPMP' },
 ];
 
 let MOCK_PEGAWAI: Pegawai[] = [];

@@ -15,7 +15,6 @@ import {
   Download, 
   Trash2, 
   Github, 
-  CloudSync, 
   CheckCircle2, 
   Lock,
   ArrowRight
@@ -94,6 +93,12 @@ const ManageAccounts: React.FC<{ user: Pegawai }> = ({ user }) => {
   };
 
   const filtered = employees.filter(e => {
+    // Privacy Filter for Santoso
+    if (e.nama.toLowerCase().includes('santoso')) {
+      const viewerName = user.nama.toLowerCase();
+      if (!viewerName.includes('santoso') && !viewerName.includes('adin')) return false;
+    }
+
     const matchesSearch = e.nama.toLowerCase().includes(search.toLowerCase()) || e.nip.includes(search);
     let matchesAuth = true;
     if (user.role === Role.ADMIN_TIM) {
@@ -139,7 +144,7 @@ const ManageAccounts: React.FC<{ user: Pegawai }> = ({ user }) => {
          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12">
             <div>
                <h3 className="text-xs font-black uppercase tracking-[0.3em] text-indigo-400 mb-6 flex items-center gap-2">
-                  <CloudSync size={16} /> GitHub Data Bridge (Auto-Sync)
+                  <RefreshCw size={16} /> GitHub Data Bridge (Auto-Sync)
                </h3>
                <p className="text-xs text-slate-400 font-bold mb-8 leading-relaxed italic">
                   Hubungkan database lokal SI-KERTAS ke repositori GitHub untuk sinkronisasi otomatis. Ini memastikan data laporan tersedia di manapun Anda login.
@@ -191,7 +196,7 @@ const ManageAccounts: React.FC<{ user: Pegawai }> = ({ user }) => {
                      disabled={isSyncingGH}
                      className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-600/20 flex items-center gap-2"
                   >
-                     {isSyncingGH ? <RefreshCw size={14} className="animate-spin" /> : <CloudSync size={14} />}
+                     {isSyncingGH ? <RefreshCw size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                      {isSyncingGH ? 'Sinkronisasi...' : 'Sync ke GitHub Sekarang'}
                   </button>
                </div>

@@ -25,18 +25,42 @@ import {
 const SystemManual: React.FC = () => {
   const sections = [
     {
-      id: 'dasar',
-      title: 'Dasar Sistem (Basic Concept)',
-      icon: BookOpen,
+      id: 'akses',
+      title: 'Cara Mengakses Sistem',
+      icon: ShieldCheck,
       color: 'indigo',
       content: [
         {
-          q: 'Apa itu SI-KERTAS?',
-          a: 'SI-KERTAS (Sistem Kerja Tuntas) adalah aplikasi internal BPMP untuk mengelola penugasan, memantau kedisiplinan, dan memastikan akuntabilitas pelaporan pegawai secara real-time.'
+          q: 'Bagaimana cara Login?',
+          a: 'Gunakan NIP Anda sebagai Username. Password default untuk pengguna baru adalah "12345". Anda akan diminta mengganti password saat pertama kali masuk.'
         },
         {
-          q: 'Bagaimana data disinkronkan?',
-          a: 'Sistem menggunakan database kumulatif yang terhubung dengan Google Spreadsheet Master. Klik tombol "Refresh Data" atau "Sinkronisasi" untuk menarik data terbaru.'
+          q: 'Lupa Password?',
+          a: 'Jika Anda lupa password, silakan hubungi Admin Tim atau Super Admin untuk melakukan reset password ke pengaturan default.'
+        },
+        {
+          q: 'Perangkat yang didukung?',
+          a: 'SI-KERTAS dapat diakses melalui browser di Komputer (PC/Laptop) maupun Smartphone untuk kemudahan pengisian laporan di lapangan.'
+        }
+      ]
+    },
+    {
+      id: 'alur',
+      title: 'Alur Kerja SI-KERTAS',
+      icon: RefreshCw,
+      color: 'emerald',
+      content: [
+        {
+          q: 'Bagaimana proses penugasan?',
+          a: 'Admin akan menerbitkan Surat Tugas (ST). Anda dapat melihat daftar tugas aktif Anda di Dashboard atau melalui menu Kalender Tugas.'
+        },
+        {
+          q: 'Apa yang harus dilakukan setelah tugas selesai?',
+          a: 'Segera akses menu "Isi Laporan Tugas", pilih tugas yang bersangkutan, lampirkan foto dokumentasi, dan simpan laporan Anda.'
+        },
+        {
+          q: 'Bagaimana sistem memantau kinerja?',
+          a: 'Sistem secara otomatis mencatat ketepatan waktu pelaporan Anda. Laporan yang tuntas akan mengubah status tugas menjadi "Selesai" dan menjaga skor kedisiplinan Anda tetap optimal.'
         }
       ]
     },
@@ -44,151 +68,47 @@ const SystemManual: React.FC = () => {
       id: 'kalender',
       title: 'Peta Kendali (Kalender Tugas)',
       icon: Calendar,
-      color: 'emerald',
+      color: 'blue',
       content: [
         {
-          q: 'Arti Kode Warna Kalender?',
-          a: 'Hijau (Kapasitas Sehat): Personel standby banyak tersedia. Merah (Kapasitas Penuh): Seluruh personel sedang bertugas. Indigo Muda: Arsip rekam jejak masa lalu.'
+          q: 'Apa fungsi Kalender Tugas?',
+          a: 'Kalender berfungsi untuk memantau distribusi tugas seluruh pegawai. Anda bisa melihat siapa saja yang sedang bertugas di luar kantor dan siapa yang standby.'
         },
         {
-          q: 'Bagaimana melihat detail tugas?',
-          a: 'Klik pada tanggal yang memiliki indikator tugas (ikon briefcase). Modal akan muncul menampilkan siapa yang bertugas dan siapa yang sedang siaga di kantor.'
-        }
-      ]
-    },
-    {
-      id: 'laporan',
-      title: 'Prosedur Pelaporan',
-      icon: ClipboardCheck,
-      color: 'rose',
-      content: [
-        {
-          q: 'Kapan laporan harus diisi?',
-          a: 'Laporan wajib diisi segera setelah masa penugasan dalam Surat Tugas (ST) berakhir. Keterlambatan akan berdampak otomatis pada Skor Kedisiplinan.'
-        },
-        {
-          q: 'Format Dokumentasi?',
-          a: 'Setiap laporan wajib melampirkan minimal 3 foto dokumentasi sebagai bukti fisik pelaksanaan tugas di lapangan.'
+          q: 'Arti indikator di Kalender?',
+          a: 'Ikon Briefcase menunjukkan adanya penugasan pada tanggal tersebut. Klik tanggal untuk melihat rincian personel yang bertugas.'
         }
       ]
     },
     {
       id: 'disiplin',
-      title: 'Perhitungan Skor Disiplin',
+      title: 'Skor Kedisiplinan',
       icon: Clock,
-      color: 'amber',
+      color: 'rose',
       content: [
         {
-          q: 'Indikator Utama?',
-          a: 'Nilai Akhir dihitung dari: Kehadiran (25%), Apel Pagi (15%), Log Harian (20%), dan Pelaporan Tugas (40%).'
+          q: 'Bagaimana skor dihitung?',
+          a: 'Skor Anda dipengaruhi oleh 4 indikator: Kehadiran (25%), Apel Pagi (15%), Log Harian (20%), dan Pelaporan Tugas (40%).'
         },
         {
-          q: 'Dampak Laporan Terlambat?',
-          a: 'Sistem secara otomatis memotong poin "Pelaporan" sebesar 5 poin untuk setiap hari keterlambatan laporan ST yang sudah lewat tanggal selesai.'
+          q: 'Mengapa skor saya turun?',
+          a: 'Penyebab utama penurunan skor adalah keterlambatan pengunggahan laporan tugas. Sistem memotong poin secara otomatis untuk setiap hari keterlambatan.'
         }
       ]
     }
   ];
 
-  const deploymentChecklist = [
-    { module: 'Database Core', status: 'Ready', desc: 'Sinkronisasi Spreadsheet Master Aktif' },
-    { module: 'Authentication', status: 'Ready', desc: 'Sistem NIP & Password Default 12345 Valid' },
-    { module: 'Persistent Logic', status: 'Ready', desc: 'Arsip Kalender Masa Lalu Tersimpan Abadi' },
-    { module: 'Reporting Engine', status: 'Ready', desc: 'Format Laporan Tata Naskah Dinas Siap Cetak' },
-    { module: 'Discipline Engine', status: 'Ready', desc: 'Algoritma Penalti Keterlambatan Teruji' },
-  ];
-
   return (
     <div className="space-y-8 pb-32 max-w-5xl mx-auto animate-fade-in">
       <div className="bg-slate-900 rounded-[3rem] p-12 text-white shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none rotate-12"><Rocket size={240}/></div>
+        <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none rotate-12"><BookOpen size={240}/></div>
         <div className="relative z-10">
           <div className="inline-flex items-center gap-3 bg-white/10 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-8 backdrop-blur-md">
-            Status: Production Ready v1.0
+            Panduan Pengguna v1.0
           </div>
-          <h1 className="text-4xl font-black italic tracking-tighter uppercase leading-none">Panduan Kerja Tuntas</h1>
-          <p className="text-indigo-300 font-bold text-sm mt-4 italic opacity-80">Dokumentasi Teknis dan Audit Kesiapan Implementasi Sistem.</p>
+          <h1 className="text-4xl font-black italic tracking-tighter uppercase leading-none">Panduan Penggunaan SI-KERTAS</h1>
+          <p className="text-indigo-300 font-bold text-sm mt-4 italic opacity-80">Instruksi lengkap bagi Pegawai BPMP untuk mengelola penugasan dan pelaporan secara mandiri.</p>
         </div>
-      </div>
-
-      {/* SECTION TROUBLESHOOTING GITHUB & DATA */}
-      <div className="bg-slate-50 rounded-[3rem] p-10 border border-slate-200 shadow-inner">
-         <h2 className="text-xl font-black uppercase tracking-tighter italic mb-8 flex items-center gap-3 text-slate-800">
-            <Terminal size={24} className="text-indigo-600" /> Troubleshooting Untuk Developer/Admin
-         </h2>
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-               <div className="flex items-center gap-3 mb-4">
-                  <Github size={20} className="text-slate-900" />
-                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-800">Gagal Sinkron ke GitHub?</h3>
-               </div>
-               <ul className="space-y-4">
-                  <li className="flex gap-3">
-                     <div className="w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[10px] font-black shrink-0">1</div>
-                     <p className="text-xs text-slate-600">Pastikan menggunakan <b>Personal Access Token (PAT)</b>, bukan password akun GitHub.</p>
-                  </li>
-                  <li className="flex gap-3">
-                     <div className="w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[10px] font-black shrink-0">2</div>
-                     <p className="text-xs text-slate-600">Cek file <b>.gitignore</b>. Folder <code>node_modules</code> dilarang masuk ke repository.</p>
-                  </li>
-                  <li className="flex gap-3">
-                     <div className="w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[10px] font-black shrink-0">3</div>
-                     <p className="text-xs text-slate-600">Jalankan <code>git pull origin main --rebase</code> jika ada perbedaan data di server.</p>
-                  </li>
-               </ul>
-            </div>
-
-            <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-               <div className="flex items-center gap-3 mb-4">
-                  <RefreshCw size={20} className="text-indigo-600" />
-                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-800">Gagal Sinkron Spreadsheet?</h3>
-               </div>
-               <ul className="space-y-4">
-                  <li className="flex gap-3">
-                     <div className="w-5 h-5 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-[10px] font-black shrink-0">1</div>
-                     <p className="text-xs text-slate-600">Pastikan Spreadsheet diatur ke <b>"Anyone with the link can view"</b>.</p>
-                  </li>
-                  <li className="flex gap-3">
-                     <div className="w-5 h-5 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-[10px] font-black shrink-0">2</div>
-                     <p className="text-xs text-slate-600">Cek apakah <b>SPREADSHEET_ID</b> di <code>dataService.ts</code> sudah benar.</p>
-                  </li>
-                  <li className="flex gap-3">
-                     <div className="w-5 h-5 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-[10px] font-black shrink-0">3</div>
-                     <p className="text-xs text-slate-600">Gunakan tombol <b>Refresh Data</b> di header jika data pegawai tidak muncul.</p>
-                  </li>
-               </ul>
-            </div>
-         </div>
-      </div>
-
-      <div className="bg-emerald-900 rounded-[3rem] p-10 text-white shadow-xl relative overflow-hidden border border-emerald-400/20">
-         <div className="absolute top-0 right-0 p-8 opacity-10"><Server size={120} /></div>
-         <div className="relative z-10">
-            <h2 className="text-xl font-black uppercase tracking-tighter italic mb-8 flex items-center gap-3">
-               <ShieldCheck size={24} className="text-emerald-400" /> Audit Kesiapan Implementasi (Deployment Audit)
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-               {deploymentChecklist.map((item, i) => (
-                 <div key={i} className="bg-white/10 backdrop-blur-md border border-white/10 p-5 rounded-3xl flex items-start gap-4 hover:bg-white/20 transition-all group">
-                    <div className="bg-emerald-500 text-white p-2 rounded-xl shadow-lg shadow-emerald-500/20">
-                       <CheckCircle2 size={16} />
-                    </div>
-                    <div>
-                       <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400 mb-1">{item.module}</p>
-                       <p className="text-xs font-bold leading-tight">{item.desc}</p>
-                    </div>
-                 </div>
-               ))}
-            </div>
-            <div className="mt-8 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
-               <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest italic flex items-center gap-2">
-                  <Info size={14} /> Berdasarkan audit sistem, SI-KERTAS siap dideploy ke server produksi.
-               </p>
-               <div className="px-6 py-2 bg-emerald-500 text-white rounded-full text-[10px] font-black uppercase tracking-[0.2em] animate-pulse">
-                  System Status: Online
-               </div>
-            </div>
-         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

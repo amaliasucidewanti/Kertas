@@ -28,8 +28,20 @@ const Dashboard: React.FC<{ user: Pegawai }> = ({ user }) => {
   
   const currentNip = dataService.standardizeNip(user.nip);
   const unitFilter = user.role === Role.ADMIN_TIM ? user.unitKerja : undefined;
-  const employees = dataService.getPegawai(unitFilter);
-  const allTasksWithStatus = dataService.getPenugasanWithStatus(unitFilter);
+  const employees = dataService.getPegawai(unitFilter).filter(e => {
+    if (e.nama.toLowerCase().includes('santoso')) {
+      const viewerName = user.nama.toLowerCase();
+      return viewerName.includes('santoso') || viewerName.includes('adin');
+    }
+    return true;
+  });
+  const allTasksWithStatus = dataService.getPenugasanWithStatus(unitFilter).filter(t => {
+    if (t.namaPegawai.toLowerCase().includes('santoso')) {
+      const viewerName = user.nama.toLowerCase();
+      return viewerName.includes('santoso') || viewerName.includes('adin');
+    }
+    return true;
+  });
   
   // Filter tugas berdasarkan bulan terpilih untuk Analisis Kinerja
   const filteredTasks = useMemo(() => {
