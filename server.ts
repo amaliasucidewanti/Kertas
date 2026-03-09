@@ -22,7 +22,14 @@ async function startServer() {
         const data = fs.readFileSync(DATA_FILE, "utf-8");
         res.json(JSON.parse(data));
       } else {
-        res.json({});
+        // Return a default structure if file doesn't exist
+        res.json({
+          penugasan: [],
+          pegawai: [],
+          programKegiatan: [],
+          lastSyncProgram: null,
+          lastUpdate: new Date(0).toISOString() // Very old date
+        });
       }
     } catch (error) {
       console.error("Error reading data:", error);

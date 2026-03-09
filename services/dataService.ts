@@ -68,18 +68,36 @@ const persistData = async () => {
 };
 
 const loadLocalData = async () => {
-  // 1. Try Server first
+  // 1. Load Local first to compare
+  const localStr = localStorage.getItem(LOCAL_STORAGE_KEY);
+  const localData = localStr ? JSON.parse(localStr) : null;
+  const localLastUpdate = localData?.lastUpdate ? new Date(localData.lastUpdate).getTime() : 0;
+
+  // 2. Try Server
   try {
     const res = await fetch('/api/data');
     if (res.ok) {
-      const data = await res.json();
-      if (data && Object.keys(data).length > 0) {
-        if (data.penugasan) MOCK_PENUGASAN = data.penugasan;
-        if (data.programKegiatan) MOCK_PROGRAM_KEGIATAN = data.programKegiatan;
-        if (data.lastSyncProgram) LAST_SYNC_PROGRAM = data.lastSyncProgram;
-        if (data.pegawai && data.pegawai.length > 0) MOCK_PEGAWAI = data.pegawai;
+      const serverData = await res.json();
+      const serverLastUpdate = serverData?.lastUpdate ? new Date(serverData.lastUpdate).getTime() : 0;
+
+      // If server has data and it's newer or equal to local, use it
+      if (serverLastUpdate >= localLastUpdate) {
+        if (serverData.penugasan) MOCK_PENUGASAN = serverData.penugasan;
+        if (serverData.programKegiatan) MOCK_PROGRAM_KEGIATAN = serverData.programKegiatan;
+        if (serverData.lastSyncProgram) LAST_SYNC_PROGRAM = serverData.lastSyncProgram;
+        if (serverData.pegawai && serverData.pegawai.length > 0) MOCK_PEGAWAI = serverData.pegawai;
         
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(serverData));
+        return;
+      } else if (localData) {
+        // Local is newer (e.g. server was wiped), push local to server
+        MOCK_PENUGASAN = localData.penugasan || [];
+        MOCK_PROGRAM_KEGIATAN = localData.programKegiatan || [];
+        LAST_SYNC_PROGRAM = localData.lastSyncProgram || null;
+        if (localData.pegawai && localData.pegawai.length > 0) {
+            MOCK_PEGAWAI = localData.pegawai;
+        }
+        await persistData();
         return;
       }
     }
@@ -87,18 +105,14 @@ const loadLocalData = async () => {
     console.warn("Server load failed, falling back to localStorage", e);
   }
 
-  // 2. Fallback to LocalStorage
-  const local = localStorage.getItem(LOCAL_STORAGE_KEY);
-  if (local) {
-    const parsed = JSON.parse(local);
-    MOCK_PENUGASAN = parsed.penugasan || [];
-    MOCK_PROGRAM_KEGIATAN = parsed.programKegiatan || [];
-    LAST_SYNC_PROGRAM = parsed.lastSyncProgram || null;
-    if (parsed.pegawai && parsed.pegawai.length > 0) {
-        MOCK_PEGAWAI = parsed.pegawai;
+  // 3. Fallback to LocalStorage if server failed
+  if (localData) {
+    MOCK_PENUGASAN = localData.penugasan || [];
+    MOCK_PROGRAM_KEGIATAN = localData.programKegiatan || [];
+    LAST_SYNC_PROGRAM = localData.lastSyncProgram || null;
+    if (localData.pegawai && localData.pegawai.length > 0) {
+        MOCK_PEGAWAI = localData.pegawai;
     }
-    // Proactively push local data to server if we reached here (meaning server was empty or failed)
-    persistData();
   }
 };
 

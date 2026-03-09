@@ -38,10 +38,10 @@ const App: React.FC = () => {
     };
     initApp();
 
-    // Polling for updates every 30 seconds
+    // Polling for updates every 5 seconds for better real-time feel
     const interval = setInterval(async () => {
       await dataService.syncWithServer();
-    }, 30000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, []);
