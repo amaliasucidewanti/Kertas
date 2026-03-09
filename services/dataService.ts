@@ -45,7 +45,7 @@ const parseCSV = (csvText: string) => {
   return rows;
 };
 
-const persistData = () => {
+const persistData = async () => {
   try {
     const dataToSave = {
       penugasan: MOCK_PENUGASAN,
@@ -55,12 +55,39 @@ const persistData = () => {
       lastUpdate: new Date().toISOString()
     };
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
+    
+    // Push to Server
+    await fetch('/api/data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dataToSave)
+    });
   } catch (e) {
-    console.error("LocalStorage Full:", e);
+    console.error("Persistence Error:", e);
   }
 };
 
-const loadLocalData = () => {
+const loadLocalData = async () => {
+  // 1. Try Server first
+  try {
+    const res = await fetch('/api/data');
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Object.keys(data).length > 0) {
+        if (data.penugasan) MOCK_PENUGASAN = data.penugasan;
+        if (data.programKegiatan) MOCK_PROGRAM_KEGIATAN = data.programKegiatan;
+        if (data.lastSyncProgram) LAST_SYNC_PROGRAM = data.lastSyncProgram;
+        if (data.pegawai && data.pegawai.length > 0) MOCK_PEGAWAI = data.pegawai;
+        
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn("Server load failed, falling back to localStorage", e);
+  }
+
+  // 2. Fallback to LocalStorage
   const local = localStorage.getItem(LOCAL_STORAGE_KEY);
   if (local) {
     const parsed = JSON.parse(local);
@@ -70,6 +97,8 @@ const loadLocalData = () => {
     if (parsed.pegawai && parsed.pegawai.length > 0) {
         MOCK_PEGAWAI = parsed.pegawai;
     }
+    // Proactively push local data to server if we reached here (meaning server was empty or failed)
+    persistData();
   }
 };
 
@@ -87,8 +116,13 @@ export const dataService = {
     }).format(now);
   },
 
+  syncWithServer: async () => {
+    await loadLocalData();
+    return true;
+  },
+
   syncAll: async () => {
-    loadLocalData();
+    await loadLocalData();
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);

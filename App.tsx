@@ -37,6 +37,13 @@ const App: React.FC = () => {
       }
     };
     initApp();
+
+    // Polling for updates every 30 seconds
+    const interval = setInterval(async () => {
+      await dataService.syncWithServer();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleLogin = (user: Pegawai) => {
