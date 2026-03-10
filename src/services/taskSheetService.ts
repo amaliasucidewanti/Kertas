@@ -24,7 +24,7 @@ export const taskSheetService = {
   },
 
   // Mengirim data (POST)
-  addTask: async (task: Omit<SimpleTask, 'id_tugas' | 'tanggal'>): Promise<boolean> => {
+  addTask: async (task: Omit<SimpleTask, 'id_tugas' | 'tanggal' | 'status'>): Promise<boolean> => {
     if (!GAS_URL) return false;
     try {
       const payload = {
