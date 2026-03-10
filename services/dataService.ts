@@ -21,6 +21,8 @@ let MOCK_PENUGASAN: Penugasan[] = [];
 let MOCK_KEDISIPLINAN: Kedisiplinan[] = [];
 let MOCK_PROGRAM_KEGIATAN: ProgramKegiatan[] = [];
 let LAST_SYNC_PROGRAM: string | null = null;
+let isSyncingToSheets = false;
+let syncListeners: ((status: boolean) => void)[] = [];
 
 const parseCSV = (csvText: string) => {
   const rows = [];
@@ -60,12 +62,30 @@ const persistData = async () => {
     
     // Push to GAS or Server
     const isGAS = GAS_API_URL.startsWith('http');
-    await fetch(GAS_API_URL, {
-      method: 'POST',
-      // If GAS, we use text/plain to avoid CORS preflight issues while still sending JSON
-      headers: { 'Content-Type': isGAS ? 'text/plain' : 'application/json' },
-      body: JSON.stringify(dataToSave)
-    });
+    
+    if (isGAS) {
+      isSyncingToSheets = true;
+      syncListeners.forEach(l => l(true));
+    }
+
+    try {
+      const res = await fetch(GAS_API_URL, {
+        method: 'POST',
+        // If GAS, we use text/plain to avoid CORS preflight issues while still sending JSON
+        headers: { 'Content-Type': isGAS ? 'text/plain' : 'application/json' },
+        body: JSON.stringify(dataToSave)
+      });
+      if (!res.ok) {
+        console.error("GAS Sync Failed with status:", res.status);
+      }
+    } catch (err) {
+      console.error("GAS Sync Network Error:", err);
+    } finally {
+      if (isGAS) {
+        isSyncingToSheets = false;
+        syncListeners.forEach(l => l(false));
+      }
+    }
   } catch (e) {
     console.error("Persistence Error:", e);
   }
@@ -125,6 +145,15 @@ export const dataService = {
     if (!nip) return '';
     return nip.toString().replace(/\D/g, '').trim();
   },
+
+  onSyncStatusChange: (callback: (status: boolean) => void) => {
+    syncListeners.push(callback);
+    return () => {
+      syncListeners = syncListeners.filter(l => l !== callback);
+    };
+  },
+
+  isSyncing: () => isSyncingToSheets,
 
   getTodayWIT: () => {
     const now = new Date();

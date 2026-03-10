@@ -32,6 +32,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ user, onLogout, children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isSheetsSyncing, setIsSheetsSyncing] = useState(dataService.isSyncing());
   const [currentTime, setCurrentTime] = useState(new Date());
   const location = useLocation();
 
@@ -41,7 +42,15 @@ const Layout: React.FC<LayoutProps> = ({ user, onLogout, children }) => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
-    return () => clearInterval(timer);
+    
+    const unsubscribe = dataService.onSyncStatusChange((status) => {
+      setIsSheetsSyncing(status);
+    });
+
+    return () => {
+      clearInterval(timer);
+      unsubscribe();
+    };
   }, []);
 
   const formatWIT = (date: Date) => {
@@ -162,6 +171,12 @@ const Layout: React.FC<LayoutProps> = ({ user, onLogout, children }) => {
                  <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
                  {isSyncing ? 'Sinkronisasi...' : 'Refresh Data'}
                </button>
+               {isSheetsSyncing && (
+                 <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest animate-pulse">
+                    <ShieldCheck size={14} />
+                    Syncing to Sheets...
+                 </div>
+               )}
                <div className="px-4 py-2 bg-slate-900 text-white rounded-xl flex items-center gap-2 shadow-lg shadow-slate-200">
                   <ClockIcon size={14} className="text-indigo-400" />
                   <span className="text-xs font-black tracking-widest">{formatWIT(currentTime)} WIT</span>
