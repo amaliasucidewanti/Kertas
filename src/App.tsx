@@ -1,23 +1,22 @@
 
 import React, { useState, useEffect } from 'react';
-// @ts-ignore
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthState, Pegawai, Role } from './types';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import EmployeeList from './pages/EmployeeList';
-import AssignmentCalendar from './pages/Calendar';
-import SuratTugasForm from './pages/SuratTugasForm';
-import AssignmentWizard from './pages/AssignmentWizard';
-import LaporanTugas from './pages/LaporanTugas';
-import DisciplineView from './pages/Discipline';
-import Reports from './pages/Reports';
-import ChangePassword from './pages/ChangePassword';
-import ManageAccounts from './pages/ManageAccounts';
-import ProgramKegiatan2026 from './pages/ProgramKegiatan2026';
-import SystemManual from './pages/SystemManual';
-import Layout from './components/Layout';
-import { dataService } from './services/dataService';
+import { AuthState, Pegawai, Role } from './types.ts';
+import Login from './pages/Login.tsx';
+import Dashboard from './pages/Dashboard.tsx';
+import EmployeeList from './pages/EmployeeList.tsx';
+import AssignmentCalendar from './pages/Calendar.tsx';
+import SuratTugasForm from './pages/SuratTugasForm.tsx';
+import AssignmentWizard from './pages/AssignmentWizard.tsx';
+import LaporanTugas from './pages/LaporanTugas.tsx';
+import DisciplineView from './pages/Discipline.tsx';
+import Reports from './pages/Reports.tsx';
+import ChangePassword from './pages/ChangePassword.tsx';
+import ManageAccounts from './pages/ManageAccounts.tsx';
+import ProgramKegiatan2026 from './pages/ProgramKegiatan2026.tsx';
+import SystemManual from './pages/SystemManual.tsx';
+import Layout from './components/Layout.tsx';
+import { dataService } from './services/dataService.ts';
 
 const App: React.FC = () => {
   const [auth, setAuth] = useState<AuthState>({

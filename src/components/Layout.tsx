@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 // @ts-ignore
 import { Link, useLocation } from 'react-router-dom';
-import { Pegawai, Role } from '../types';
+import { Pegawai, Role } from '../types.ts';
 import { 
   LayoutDashboard, 
   Users, 
@@ -21,7 +21,7 @@ import {
   Map as MapIcon,
   HelpCircle
 } from 'lucide-react';
-import { dataService } from '../services/dataService';
+import { dataService } from '../services/dataService.ts';
 
 interface LayoutProps {
   user: Pegawai;

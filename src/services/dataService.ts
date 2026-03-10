@@ -1,5 +1,5 @@
 
-import { Role, Pegawai, Penugasan, Kedisiplinan, ProgramKegiatan } from '../types';
+import { Role, Pegawai, Penugasan, Kedisiplinan, ProgramKegiatan } from '../types.ts';
 
 const SPREADSHEET_ID = (import.meta as any).env.VITE_SPREADSHEET_ID || '1iB7Tdda08wD1u5IwiKUEjkfI2JFzw4wjTI_bGRhivVc';
 const PROGRAM_2026_ID = (import.meta as any).env.VITE_PROGRAM_2026_ID || '1BYzuh5PnniaafkV25HkBE7QCcdMvfjC9'; 
