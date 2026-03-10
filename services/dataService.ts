@@ -1,8 +1,8 @@
 
 import { Role, Pegawai, Penugasan, Kedisiplinan, ProgramKegiatan } from '../types';
 
-const SPREADSHEET_ID = '1iB7Tdda08wD1u5IwiKUEjkfI2JFzw4wjTI_bGRhivVc';
-const PROGRAM_2026_ID = '1BYzuh5PnniaafkV25HkBE7QCcdMvfjC9'; 
+const SPREADSHEET_ID = (import.meta as any).env.VITE_SPREADSHEET_ID || '1iB7Tdda08wD1u5IwiKUEjkfI2JFzw4wjTI_bGRhivVc';
+const PROGRAM_2026_ID = (import.meta as any).env.VITE_PROGRAM_2026_ID || '1BYzuh5PnniaafkV25HkBE7QCcdMvfjC9'; 
 const PROGRAM_2026_GID = '1637860300'; 
 
 const LOCAL_STORAGE_KEY = 'si-kertas-local-db-v1';
@@ -45,6 +45,8 @@ const parseCSV = (csvText: string) => {
   return rows;
 };
 
+const GAS_API_URL = (import.meta as any).env.VITE_GAS_API_URL || '/api/data';
+
 const persistData = async () => {
   try {
     const dataToSave = {
@@ -56,10 +58,12 @@ const persistData = async () => {
     };
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
     
-    // Push to Server
-    await fetch('/api/data', {
+    // Push to GAS or Server
+    const isGAS = GAS_API_URL.startsWith('http');
+    await fetch(GAS_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      // If GAS, we use text/plain to avoid CORS preflight issues while still sending JSON
+      headers: { 'Content-Type': isGAS ? 'text/plain' : 'application/json' },
       body: JSON.stringify(dataToSave)
     });
   } catch (e) {
@@ -73,9 +77,9 @@ const loadLocalData = async () => {
   const localData = localStr ? JSON.parse(localStr) : null;
   const localLastUpdate = localData?.lastUpdate ? new Date(localData.lastUpdate).getTime() : 0;
 
-  // 2. Try Server
+  // 2. Try GAS/Server
   try {
-    const res = await fetch('/api/data');
+    const res = await fetch(GAS_API_URL);
     if (res.ok) {
       const serverData = await res.json();
       const serverLastUpdate = serverData?.lastUpdate ? new Date(serverData.lastUpdate).getTime() : 0;
@@ -139,7 +143,7 @@ export const dataService = {
     await loadLocalData();
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const [pegRes, disRes] = await Promise.all([
         fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=DATA_PEGAWAI`, { signal: controller.signal }),
@@ -205,7 +209,7 @@ export const dataService = {
   syncProgram2026: async () => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const res = await fetch(`https://docs.google.com/spreadsheets/d/${PROGRAM_2026_ID}/export?format=csv&gid=${PROGRAM_2026_GID}`, { signal: controller.signal });
       clearTimeout(timeoutId);
