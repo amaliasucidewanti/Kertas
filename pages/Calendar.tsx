@@ -2,28 +2,15 @@
 import React, { useState } from 'react';
 import { dataService } from '../services/dataService';
 // Added missing 'Shield' import
-import { Pegawai } from '../types';
 import { ChevronLeft, ChevronRight, User, Users, MapPin, Briefcase, X, Info, CheckCircle2, AlertCircle, History, Shield } from 'lucide-react';
 
-const AssignmentCalendar: React.FC<{ user: Pegawai }> = ({ user }) => {
+const AssignmentCalendar: React.FC = () => {
   const now = new Date();
   const [currentDate, setCurrentDate] = useState(new Date(now.getFullYear(), now.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   
-  const tasks = dataService.getPenugasan().filter(t => {
-    if (t.namaPegawai.toLowerCase().includes('santoso')) {
-      const viewerName = user.nama.toLowerCase();
-      return viewerName.includes('santoso') || viewerName.includes('adin');
-    }
-    return true;
-  });
-  const allEmployees = dataService.getPegawai().filter(e => {
-    if (e.nama.toLowerCase().includes('santoso')) {
-      const viewerName = user.nama.toLowerCase();
-      return viewerName.includes('santoso') || viewerName.includes('adin');
-    }
-    return true;
-  });
+  const tasks = dataService.getPenugasan();
+  const allEmployees = dataService.getPegawai();
 
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jayapura' });
 
@@ -36,36 +23,16 @@ const AssignmentCalendar: React.FC<{ user: Pegawai }> = ({ user }) => {
   for (let i = 0; i < firstDayOfMonth; i++) days.push(null);
   for (let i = 1; i <= daysInMonth; i++) days.push(i);
 
-  const getFilteredDailyStatus = (dateStr: string) => {
-    const status = dataService.getDailyStatus(dateStr);
-    return {
-      bertugas: status.bertugas.filter(t => {
-        if (t.namaPegawai.toLowerCase().includes('santoso')) {
-          const v = user.nama.toLowerCase();
-          return v.includes('santoso') || v.includes('adin');
-        }
-        return true;
-      }),
-      standby: status.standby.filter(p => {
-        if (p.nama.toLowerCase().includes('santoso')) {
-          const v = user.nama.toLowerCase();
-          return v.includes('santoso') || v.includes('adin');
-        }
-        return true;
-      })
-    };
-  };
-
   const getCellData = (day: number | null) => {
     if (!day) return null;
     const dateStr = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
     const isPast = dateStr < todayStr;
     const isToday = dateStr === todayStr;
-    const dailyStatus = getFilteredDailyStatus(dateStr);
+    const dailyStatus = dataService.getDailyStatus(dateStr);
     return { dateStr, isPast, isToday, ...dailyStatus };
   };
 
-  const selectedData = selectedDate ? getFilteredDailyStatus(selectedDate) : null;
+  const selectedData = selectedDate ? dataService.getDailyStatus(selectedDate) : null;
   const isSelectedDatePast = selectedDate ? selectedDate < todayStr : false;
 
   return (

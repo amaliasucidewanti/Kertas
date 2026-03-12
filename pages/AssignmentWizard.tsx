@@ -8,7 +8,7 @@ import {
 // @ts-ignore
 import { useNavigate } from 'react-router-dom';
 
-const AssignmentWizard: React.FC<{ user: Pegawai }> = ({ user }) => {
+const AssignmentWizard: React.FC = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [isValidating, setIsValidating] = useState(false);
@@ -29,19 +29,9 @@ const AssignmentWizard: React.FC<{ user: Pegawai }> = ({ user }) => {
 
   const [conflictResults, setConflictResults] = useState<{nip: string, message: string}[]>([]);
 
-  const { employees: eligibleEmployeesRaw, warning: gatekeeperWarning } = useMemo(() => {
+  const { employees: eligibleEmployees, warning: gatekeeperWarning } = useMemo(() => {
     return dataService.getEligibleEmployees();
   }, []);
-
-  const eligibleEmployees = useMemo(() => {
-    return eligibleEmployeesRaw.filter(e => {
-      if (e.nama.toLowerCase().includes('santoso')) {
-        const v = user.nama.toLowerCase();
-        return v.includes('santoso') || v.includes('adin');
-      }
-      return true;
-    });
-  }, [eligibleEmployeesRaw, user]);
 
   const standbyEmployees = useMemo(() => {
     return eligibleEmployees.filter(e => {

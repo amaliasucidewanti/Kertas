@@ -1,8 +1,8 @@
 
-import { Role, Pegawai, Penugasan, Kedisiplinan, ProgramKegiatan } from '../types.ts';
+import { Role, Pegawai, Penugasan, Kedisiplinan, ProgramKegiatan } from '../types';
 
-const SPREADSHEET_ID = (import.meta as any).env.VITE_SPREADSHEET_ID || '1iB7Tdda08wD1u5IwiKUEjkfI2JFzw4wjTI_bGRhivVc';
-const PROGRAM_2026_ID = (import.meta as any).env.VITE_PROGRAM_2026_ID || '1BYzuh5PnniaafkV25HkBE7QCcdMvfjC9'; 
+const SPREADSHEET_ID = '1iB7Tdda08wD1u5IwiKUEjkfI2JFzw4wjTI_bGRhivVc';
+const PROGRAM_2026_ID = '1BYzuh5PnniaafkV25HkBE7QCcdMvfjC9'; 
 const PROGRAM_2026_GID = '1637860300'; 
 
 const LOCAL_STORAGE_KEY = 'si-kertas-local-db-v1';
@@ -10,10 +10,6 @@ const GITHUB_CONFIG_KEY = 'si-kertas-github-cfg';
 
 const SYSTEM_USERS: Pegawai[] = [
   { id: 'sys-admin', nama: 'Administrator Utama', nip: '000000', jabatan: 'Super Admin', unitKerja: 'Pusat Data', role: Role.SUPER_ADMIN, username: 'Admin', passwordChangeRequired: false, jenisTugas: 'Luring', sumberBiaya: 'BPMP' },
-  { id: 'admin-paud', nama: 'Admin Tim PAUD', nip: '111111', jabatan: 'Admin Tim Kerja', unitKerja: 'PAUD', role: Role.ADMIN_TIM, username: 'adminpaud', passwordChangeRequired: false, jenisTugas: 'Luring', sumberBiaya: 'BPMP' },
-  { id: 'admin-sd', nama: 'Admin Tim SD', nip: '222222', jabatan: 'Admin Tim Kerja', unitKerja: 'SD', role: Role.ADMIN_TIM, username: 'adminsd', passwordChangeRequired: false, jenisTugas: 'Luring', sumberBiaya: 'BPMP' },
-  { id: 'admin-smp', nama: 'Admin Tim SMP', nip: '333333', jabatan: 'Admin Tim Kerja', unitKerja: 'SMP', role: Role.ADMIN_TIM, username: 'adminsmp', passwordChangeRequired: false, jenisTugas: 'Luring', sumberBiaya: 'BPMP' },
-  { id: 'admin-sma', nama: 'Admin Tim SMA', nip: '444444', jabatan: 'Admin Tim Kerja', unitKerja: 'SMA', role: Role.ADMIN_TIM, username: 'adminsma', passwordChangeRequired: false, jenisTugas: 'Luring', sumberBiaya: 'BPMP' },
 ];
 
 let MOCK_PEGAWAI: Pegawai[] = [];
@@ -21,8 +17,6 @@ let MOCK_PENUGASAN: Penugasan[] = [];
 let MOCK_KEDISIPLINAN: Kedisiplinan[] = [];
 let MOCK_PROGRAM_KEGIATAN: ProgramKegiatan[] = [];
 let LAST_SYNC_PROGRAM: string | null = null;
-let isSyncingToSheets = false;
-let syncListeners: ((status: boolean) => void)[] = [];
 
 const parseCSV = (csvText: string) => {
   const rows = [];
@@ -47,9 +41,7 @@ const parseCSV = (csvText: string) => {
   return rows;
 };
 
-const GAS_API_URL = (import.meta as any).env.VITE_GAS_API_URL || '/api/data';
-
-const persistData = async () => {
+const persistData = () => {
   try {
     const dataToSave = {
       penugasan: MOCK_PENUGASAN,
@@ -59,83 +51,20 @@ const persistData = async () => {
       lastUpdate: new Date().toISOString()
     };
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
-    
-    // Push to GAS or Server
-    const isGAS = GAS_API_URL.startsWith('http');
-    
-    if (isGAS) {
-      isSyncingToSheets = true;
-      syncListeners.forEach(l => l(true));
-    }
-
-    try {
-      const res = await fetch(GAS_API_URL, {
-        method: 'POST',
-        // If GAS, we use text/plain to avoid CORS preflight issues while still sending JSON
-        headers: { 'Content-Type': isGAS ? 'text/plain' : 'application/json' },
-        body: JSON.stringify(dataToSave)
-      });
-      if (!res.ok) {
-        console.error("GAS Sync Failed with status:", res.status);
-      }
-    } catch (err) {
-      console.error("GAS Sync Network Error:", err);
-    } finally {
-      if (isGAS) {
-        isSyncingToSheets = false;
-        syncListeners.forEach(l => l(false));
-      }
-    }
   } catch (e) {
-    console.error("Persistence Error:", e);
+    console.error("LocalStorage Full:", e);
   }
 };
 
-const loadLocalData = async () => {
-  // 1. Load Local first to compare
-  const localStr = localStorage.getItem(LOCAL_STORAGE_KEY);
-  const localData = localStr ? JSON.parse(localStr) : null;
-  const localLastUpdate = localData?.lastUpdate ? new Date(localData.lastUpdate).getTime() : 0;
-
-  // 2. Try GAS/Server
-  try {
-    const res = await fetch(GAS_API_URL);
-    if (res.ok) {
-      const serverData = await res.json();
-      const serverLastUpdate = serverData?.lastUpdate ? new Date(serverData.lastUpdate).getTime() : 0;
-
-      // If server has data and it's newer or equal to local, use it
-      if (serverLastUpdate >= localLastUpdate) {
-        if (serverData.penugasan) MOCK_PENUGASAN = serverData.penugasan;
-        if (serverData.programKegiatan) MOCK_PROGRAM_KEGIATAN = serverData.programKegiatan;
-        if (serverData.lastSyncProgram) LAST_SYNC_PROGRAM = serverData.lastSyncProgram;
-        if (serverData.pegawai && serverData.pegawai.length > 0) MOCK_PEGAWAI = serverData.pegawai;
-        
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(serverData));
-        return;
-      } else if (localData) {
-        // Local is newer (e.g. server was wiped), push local to server
-        MOCK_PENUGASAN = localData.penugasan || [];
-        MOCK_PROGRAM_KEGIATAN = localData.programKegiatan || [];
-        LAST_SYNC_PROGRAM = localData.lastSyncProgram || null;
-        if (localData.pegawai && localData.pegawai.length > 0) {
-            MOCK_PEGAWAI = localData.pegawai;
-        }
-        await persistData();
-        return;
-      }
-    }
-  } catch (e) {
-    console.warn("Server load failed, falling back to localStorage", e);
-  }
-
-  // 3. Fallback to LocalStorage if server failed
-  if (localData) {
-    MOCK_PENUGASAN = localData.penugasan || [];
-    MOCK_PROGRAM_KEGIATAN = localData.programKegiatan || [];
-    LAST_SYNC_PROGRAM = localData.lastSyncProgram || null;
-    if (localData.pegawai && localData.pegawai.length > 0) {
-        MOCK_PEGAWAI = localData.pegawai;
+const loadLocalData = () => {
+  const local = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (local) {
+    const parsed = JSON.parse(local);
+    MOCK_PENUGASAN = parsed.penugasan || [];
+    MOCK_PROGRAM_KEGIATAN = parsed.programKegiatan || [];
+    LAST_SYNC_PROGRAM = parsed.lastSyncProgram || null;
+    if (parsed.pegawai && parsed.pegawai.length > 0) {
+        MOCK_PEGAWAI = parsed.pegawai;
     }
   }
 };
@@ -146,15 +75,6 @@ export const dataService = {
     return nip.toString().replace(/\D/g, '').trim();
   },
 
-  onSyncStatusChange: (callback: (status: boolean) => void) => {
-    syncListeners.push(callback);
-    return () => {
-      syncListeners = syncListeners.filter(l => l !== callback);
-    };
-  },
-
-  isSyncing: () => isSyncingToSheets,
-
   getTodayWIT: () => {
     const now = new Date();
     return new Intl.DateTimeFormat('en-CA', { 
@@ -163,74 +83,37 @@ export const dataService = {
     }).format(now);
   },
 
-  syncWithServer: async () => {
-    await loadLocalData();
-    return true;
-  },
-
   syncAll: async () => {
-    await loadLocalData();
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-      const [pegRes, disRes] = await Promise.all([
-        fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=DATA_PEGAWAI`, { signal: controller.signal }),
-        fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=DISIPLIN_PEGAWAI`, { signal: controller.signal })
-      ]);
+      const res = await fetch('/api/data');
+      if (!res.ok) throw new Error('Gagal mengambil data dari server');
+      const data = await res.json();
       
-      clearTimeout(timeoutId);
-
-      const [pegCsv, disCsv] = await Promise.all([pegRes.text(), disRes.text()]);
-      
-      const pegRows = parseCSV(pegCsv).slice(1);
-      const spreadsheetPegawai = pegRows.map((row, idx) => {
-        const nip = dataService.standardizeNip(row[0] || '');
-        return {
-          id: `p-${idx}`,
-          nama: row[1] || 'Tanpa Nama',
-          nip: nip,
-          jabatan: row[2] || '-',
-          unitKerja: row[3] || '-',
-          role: (row[4] as Role) || Role.PEGAWAI,
-          username: nip,
-          passwordChangeRequired: false,
-          jenisTugas: (row[5] as any) || 'Luring',
-          sumberBiaya: (row[6] as any) || 'BPMP'
-        };
-      });
-
-      spreadsheetPegawai.forEach(sp => {
-          const existingIdx = MOCK_PEGAWAI.findIndex(p => p.nip === sp.nip);
-          if (existingIdx === -1) {
-              MOCK_PEGAWAI.push(sp);
-          } else {
-              MOCK_PEGAWAI[existingIdx] = {
-                ...MOCK_PEGAWAI[existingIdx],
-                nama: sp.nama,
-                jabatan: sp.jabatan,
-                unitKerja: sp.unitKerja,
-                role: sp.role
-              };
-          }
-      });
-
-      const disRows = parseCSV(disCsv).slice(1);
-      MOCK_KEDISIPLINAN = disRows.map((row) => ({
-        nip: dataService.standardizeNip(row[0] || ''),
-        kehadiran: parseFloat(row[1]) || 0,
-        apel: parseFloat(row[2]) || 0,
-        logHarian: parseFloat(row[3]) || 0,
-        pelaporan: parseFloat(row[4]) || 0,
-        nilaiAkhir: parseFloat(row[5]) || 0
+      MOCK_PEGAWAI = data.pegawai.map((p: any) => ({
+        ...p,
+        passwordChangeRequired: p.passwordChangeRequired === 'true' || p.passwordChangeRequired === true
+      }));
+      MOCK_KEDISIPLINAN = data.kedisiplinan.map((k: any) => ({
+        nip: k.nip,
+        kehadiran: parseFloat(k.kehadiran) || 0,
+        apel: parseFloat(k.apel) || 0,
+        logHarian: parseFloat(k.logHarian) || 0,
+        pelaporan: parseFloat(k.pelaporan) || 0,
+        nilaiAkhir: parseFloat(k.nilaiAkhir) || 0
+      }));
+      MOCK_PENUGASAN = data.penugasan.map((p: any) => ({
+        ...p,
+        biaya: parseFloat(p.biaya) || 0
+      }));
+      MOCK_PROGRAM_KEGIATAN = data.programKegiatan.map((p: any) => ({
+        ...p,
+        mingguKe: parseInt(p.mingguKe) || 1
       }));
 
-      await dataService.syncProgram2026();
-
-      persistData();
       return true;
     } catch (e) {
       console.warn("Sinkronisasi gagal, menggunakan data lokal:", e);
+      loadLocalData();
       return MOCK_PEGAWAI.length > 0;
     }
   },
@@ -238,7 +121,7 @@ export const dataService = {
   syncProgram2026: async () => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       const res = await fetch(`https://docs.google.com/spreadsheets/d/${PROGRAM_2026_ID}/export?format=csv&gid=${PROGRAM_2026_GID}`, { signal: controller.signal });
       clearTimeout(timeoutId);
@@ -363,33 +246,65 @@ export const dataService = {
     return list.sort((a,b) => a.nama.localeCompare(b.nama));
   },
 
-  addPegawai: (data: any) => {
+  addPegawai: async (data: any) => {
     const newP: Pegawai = {
       ...data,
       id: `p-${Date.now()}`,
       username: data.nip,
       passwordChangeRequired: true,
     };
-    MOCK_PEGAWAI.push(newP);
-    persistData();
-    return true;
+    try {
+      await fetch('/api/pegawai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newP)
+      });
+      MOCK_PEGAWAI.push(newP);
+      persistData();
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   },
   
-  updatePegawai: (nip: string, data: Partial<Pegawai>) => {
-    MOCK_PEGAWAI = MOCK_PEGAWAI.map(p => p.nip === nip ? { ...p, ...data } : p);
-    persistData();
-    return true;
+  updatePegawai: async (nip: string, data: Partial<Pegawai>) => {
+    try {
+      await fetch(`/api/pegawai/${nip}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      MOCK_PEGAWAI = MOCK_PEGAWAI.map(p => p.nip === nip ? { ...p, ...data } : p);
+      persistData();
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   },
 
-  resetPassword: (id: string, adminName: string) => {
-    MOCK_PEGAWAI = MOCK_PEGAWAI.map(p => p.id === id ? { 
-      ...p, 
+  resetPassword: async (id: string, adminName: string) => {
+    const p = MOCK_PEGAWAI.find(p => p.id === id);
+    if (!p) return false;
+    const update = { 
       passwordChangeRequired: true, 
       lastPasswordResetBy: adminName,
       lastPasswordResetAt: new Date().toLocaleString()
-    } : p);
-    persistData();
-    return true;
+    };
+    try {
+      await fetch(`/api/pegawai/${p.nip}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(update)
+      });
+      MOCK_PEGAWAI = MOCK_PEGAWAI.map(p => p.id === id ? { ...p, ...update } : p);
+      persistData();
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   },
 
   getPenugasan: () => [...MOCK_PENUGASAN],
@@ -436,40 +351,79 @@ export const dataService = {
     }).sort((a,b) => b.createdAt.localeCompare(a.createdAt));
   },
 
-  deletePenugasan: (id: string) => {
-    MOCK_PENUGASAN = MOCK_PENUGASAN.filter(p => p.id !== id);
-    persistData();
-    return true;
+  deletePenugasan: async (id: string) => {
+    try {
+      await fetch(`/api/penugasan/${id}`, { method: 'DELETE' });
+      MOCK_PENUGASAN = MOCK_PENUGASAN.filter(p => p.id !== id);
+      persistData();
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   },
 
-  updatePenugasan: (id: string, data: Partial<Penugasan>) => {
-    MOCK_PENUGASAN = MOCK_PENUGASAN.map(p => p.id === id ? { ...p, ...data } : p);
-    persistData();
-    return true;
+  updatePenugasan: async (id: string, data: Partial<Penugasan>) => {
+    try {
+      await fetch(`/api/penugasan/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      MOCK_PENUGASAN = MOCK_PENUGASAN.map(p => p.id === id ? { ...p, ...data } : p);
+      persistData();
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   },
 
-  saveLaporan: (taskId: string, reportData: Partial<Penugasan>) => {
-    MOCK_PENUGASAN = MOCK_PENUGASAN.map(t => t.id === taskId ? {
-      ...t,
+  saveLaporan: async (taskId: string, reportData: Partial<Penugasan>) => {
+    const update = {
       ...reportData,
       laporanStatus: 'Sudah Upload',
       statusTugas: 'Selesai'
-    } : t);
-    persistData();
-    return true;
+    };
+    try {
+      await fetch(`/api/penugasan/${taskId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(update)
+      });
+      MOCK_PENUGASAN = MOCK_PENUGASAN.map(t => t.id === taskId ? {
+        ...t,
+        ...update
+      } as Penugasan : t);
+      persistData();
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   },
 
-  addPenugasan: (task: Penugasan) => {
+  addPenugasan: async (task: Penugasan) => {
     if (MOCK_PENUGASAN.some(p => p.nomorSurat === task.nomorSurat && p.nip === task.nip)) {
       alert("Pegawai ini sudah memiliki ST dengan nomor yang sama.");
       return false;
     }
-    MOCK_PENUGASAN.push(task);
-    persistData();
-    return true;
+    try {
+      await fetch('/api/penugasan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(task)
+      });
+      MOCK_PENUGASAN.push(task);
+      persistData();
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   },
 
-  addPenugasanBatch: (formData: any, employees: Pegawai[]) => {
+  addPenugasanBatch: async (formData: any, employees: Pegawai[]) => {
     const tasks: Penugasan[] = employees.map(emp => ({
       ...formData,
       id: `ST-${Date.now()}-${emp.nip}`,
@@ -480,9 +434,24 @@ export const dataService = {
       laporanStatus: 'Belum Upload',
       createdAt: new Date().toISOString()
     }));
-    MOCK_PENUGASAN.push(...tasks);
-    persistData();
-    return true;
+    
+    try {
+      // For batch, we'll just send them one by one or implement a batch endpoint
+      // Let's do them sequentially for now to keep it simple
+      for (const task of tasks) {
+        await fetch('/api/penugasan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(task)
+        });
+      }
+      MOCK_PENUGASAN.push(...tasks);
+      persistData();
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   },
 
   getReportReminders: (nip: string) => {
@@ -521,7 +490,7 @@ export const dataService = {
   getProgramKegiatan: () => [...MOCK_PROGRAM_KEGIATAN],
   getLastSyncProgram: () => LAST_SYNC_PROGRAM,
   
-  addProgramKegiatan: (data: any) => {
+  addProgramKegiatan: async (data: any) => {
     const newPK: ProgramKegiatan = {
       ...data,
       id: `PK-${Date.now()}`,
@@ -530,47 +499,99 @@ export const dataService = {
       status: 'Belum Dilaksanakan',
       updatedAt: new Date().toISOString()
     };
-    MOCK_PROGRAM_KEGIATAN.push(newPK);
-    persistData();
-    return true;
+    try {
+      await fetch('/api/program-kegiatan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newPK)
+      });
+      MOCK_PROGRAM_KEGIATAN.push(newPK);
+      persistData();
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   },
 
-  updateProgramKegiatan: (id: string, data: Partial<ProgramKegiatan>) => {
-    MOCK_PROGRAM_KEGIATAN = MOCK_PROGRAM_KEGIATAN.map(p => p.id === id ? { ...p, ...data, updatedAt: new Date().toISOString() } : p);
-    persistData();
-    return true;
+  updateProgramKegiatan: async (id: string, data: Partial<ProgramKegiatan>) => {
+    try {
+      await fetch(`/api/program-kegiatan/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      MOCK_PROGRAM_KEGIATAN = MOCK_PROGRAM_KEGIATAN.map(p => p.id === id ? { ...p, ...data, updatedAt: new Date().toISOString() } : p);
+      persistData();
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   },
 
-  deleteProgramKegiatan: (id: string) => {
-    MOCK_PROGRAM_KEGIATAN = MOCK_PROGRAM_KEGIATAN.filter(p => p.id !== id);
-    persistData();
-    return true;
+  deleteProgramKegiatan: async (id: string) => {
+    try {
+      await fetch(`/api/program-kegiatan/${id}`, { method: 'DELETE' });
+      MOCK_PROGRAM_KEGIATAN = MOCK_PROGRAM_KEGIATAN.filter(p => p.id !== id);
+      persistData();
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   },
 
-  uploadProgramReport: (id: string, link: string, desc: string) => {
-    MOCK_PROGRAM_KEGIATAN = MOCK_PROGRAM_KEGIATAN.map(p => p.id === id ? {
-      ...p,
+  uploadProgramReport: async (id: string, link: string, desc: string) => {
+    const update = {
       laporanFileLink: link,
       deskripsiLaporan: desc,
       status: 'Sudah Dilaksanakan',
       laporanTimestamp: new Date().toISOString(),
       updatedAt: new Date().toISOString()
-    } : p);
-    persistData();
-    return true;
+    };
+    try {
+      await fetch(`/api/program-kegiatan/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(update)
+      });
+      MOCK_PROGRAM_KEGIATAN = MOCK_PROGRAM_KEGIATAN.map(p => p.id === id ? {
+        ...p,
+        ...update
+      } as ProgramKegiatan : p);
+      persistData();
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   },
 
-  deleteProgramReport: (id: string) => {
-    MOCK_PROGRAM_KEGIATAN = MOCK_PROGRAM_KEGIATAN.map(p => p.id === id ? {
-      ...p,
+  deleteProgramReport: async (id: string) => {
+    const update = {
       laporanFileLink: undefined,
       deskripsiLaporan: undefined,
       status: 'Belum Dilaksanakan',
       laporanTimestamp: undefined,
       updatedAt: new Date().toISOString()
-    } : p);
-    persistData();
-    return true;
+    };
+    try {
+      await fetch(`/api/program-kegiatan/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(update)
+      });
+      MOCK_PROGRAM_KEGIATAN = MOCK_PROGRAM_KEGIATAN.map(p => p.id === id ? {
+        ...p,
+        ...update
+      } as ProgramKegiatan : p);
+      persistData();
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   },
 
   checkConflict: (nip: string, start: string, end: string, jenis: string) => {

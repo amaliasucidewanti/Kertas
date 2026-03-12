@@ -1,22 +1,23 @@
 
 import React, { useState, useEffect } from 'react';
+// @ts-ignore
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthState, Pegawai, Role } from './types.ts';
-import Login from './pages/Login.tsx';
-import Dashboard from './pages/Dashboard.tsx';
-import EmployeeList from './pages/EmployeeList.tsx';
-import AssignmentCalendar from './pages/Calendar.tsx';
-import SuratTugasForm from './pages/SuratTugasForm.tsx';
-import AssignmentWizard from './pages/AssignmentWizard.tsx';
-import LaporanTugas from './pages/LaporanTugas.tsx';
-import DisciplineView from './pages/Discipline.tsx';
-import Reports from './pages/Reports.tsx';
-import ChangePassword from './pages/ChangePassword.tsx';
-import ManageAccounts from './pages/ManageAccounts.tsx';
-import ProgramKegiatan2026 from './pages/ProgramKegiatan2026.tsx';
-import SystemManual from './pages/SystemManual.tsx';
-import Layout from './components/Layout.tsx';
-import { dataService } from './services/dataService.ts';
+import { AuthState, Pegawai, Role } from './types';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import EmployeeList from './pages/EmployeeList';
+import AssignmentCalendar from './pages/Calendar';
+import SuratTugasForm from './pages/SuratTugasForm';
+import AssignmentWizard from './pages/AssignmentWizard';
+import LaporanTugas from './pages/LaporanTugas';
+import DisciplineView from './pages/Discipline';
+import Reports from './pages/Reports';
+import ChangePassword from './pages/ChangePassword';
+import ManageAccounts from './pages/ManageAccounts';
+import ProgramKegiatan2026 from './pages/ProgramKegiatan2026';
+import SystemManual from './pages/SystemManual';
+import Layout from './components/Layout';
+import { dataService } from './services/dataService';
 
 const App: React.FC = () => {
   const [auth, setAuth] = useState<AuthState>({
@@ -36,13 +37,6 @@ const App: React.FC = () => {
       }
     };
     initApp();
-
-    // Polling for updates every 5 seconds for better real-time feel
-    const interval = setInterval(async () => {
-      await dataService.syncWithServer();
-    }, 5000);
-
-    return () => clearInterval(interval);
   }, []);
 
   const handleLogin = (user: Pegawai) => {
@@ -93,7 +87,7 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<Dashboard user={auth.user!} />} />
             <Route path="/pegawai" element={<EmployeeList user={auth.user!} />} />
-            <Route path="/kalender" element={<AssignmentCalendar user={auth.user!} />} />
+            <Route path="/kalender" element={<AssignmentCalendar />} />
             <Route path="/discipline" element={<DisciplineView user={auth.user!} />} />
             <Route path="/program-2026" element={<ProgramKegiatan2026 user={auth.user!} />} />
             <Route path="/manual" element={<SystemManual />} />
@@ -102,7 +96,7 @@ const App: React.FC = () => {
             
             {(auth.user?.role === Role.ADMIN_TIM || auth.user?.role === Role.SUPER_ADMIN) && (
               <>
-                <Route path="/surat-tugas/baru" element={<AssignmentWizard user={auth.user!} />} />
+                <Route path="/surat-tugas/baru" element={<AssignmentWizard />} />
                 <Route path="/surat-tugas/edit" element={<SuratTugasForm />} />
                 <Route path="/laporan" element={<Reports />} />
                 <Route path="/accounts" element={<ManageAccounts user={auth.user!} />} />

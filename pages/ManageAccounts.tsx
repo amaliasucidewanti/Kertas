@@ -15,6 +15,7 @@ import {
   Download, 
   Trash2, 
   Github, 
+  Cloud, 
   CheckCircle2, 
   Lock,
   ArrowRight
@@ -93,12 +94,6 @@ const ManageAccounts: React.FC<{ user: Pegawai }> = ({ user }) => {
   };
 
   const filtered = employees.filter(e => {
-    // Privacy Filter for Santoso
-    if (e.nama.toLowerCase().includes('santoso')) {
-      const viewerName = user.nama.toLowerCase();
-      if (!viewerName.includes('santoso') && !viewerName.includes('adin')) return false;
-    }
-
     const matchesSearch = e.nama.toLowerCase().includes(search.toLowerCase()) || e.nip.includes(search);
     let matchesAuth = true;
     if (user.role === Role.ADMIN_TIM) {
@@ -144,7 +139,7 @@ const ManageAccounts: React.FC<{ user: Pegawai }> = ({ user }) => {
          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12">
             <div>
                <h3 className="text-xs font-black uppercase tracking-[0.3em] text-indigo-400 mb-6 flex items-center gap-2">
-                  <RefreshCw size={16} /> GitHub Data Bridge (Auto-Sync)
+                  <Cloud size={16} /> GitHub Data Bridge (Auto-Sync)
                </h3>
                <p className="text-xs text-slate-400 font-bold mb-8 leading-relaxed italic">
                   Hubungkan database lokal SI-KERTAS ke repositori GitHub untuk sinkronisasi otomatis. Ini memastikan data laporan tersedia di manapun Anda login.
